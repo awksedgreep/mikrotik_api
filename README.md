@@ -42,15 +42,15 @@ auth = MikrotikApi.Auth.new(
 
 ip = "10.0.0.1"
 
-# GET system resource
-case MikrotikApi.get(auth, ip, "/system/resource") do
+# GET system resource over WireGuard (HTTP inside private network)
+case MikrotikApi.get(auth, ip, "/system/resource", scheme: :http) do
   {:ok, data} -> Logger.info("system resource ok")
   {:error, err} -> Logger.error("system resource failed: #{inspect(err)}")
 end
 
 # POST to create an IP address (programmatic workflow)
 attrs = %{"address" => "192.168.88.2/24", "interface" => "bridge"}
-case MikrotikApi.post(auth, ip, "/ip/address", attrs) do
+case MikrotikApi.post(auth, ip, "/ip/address", attrs, scheme: :http) do
   {:ok, created} -> Logger.info("added ip address")
   {:error, err} -> Logger.error("add ip failed: #{inspect(err)}")
 end

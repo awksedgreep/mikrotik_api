@@ -4,15 +4,15 @@ defmodule MikrotikApi.Transport.Httpc do
 
   @impl true
   def request(method, url, headers, body, opts) do
-    req =
+    {meth, request} =
       case method do
         :get -> {:get, {url, headers}}
-        m when m in [:delete] -> {m, {url, headers}}
-        m when m in [:post, :put, :patch] -> {m, {url, headers, 'application/json', body}}
+        :delete -> {:delete, {url, headers}}
+        m when m in [:post, :put, :patch] -> {m, {url, headers, ~c"application/json", body}}
       end
 
     http_opts = Keyword.get(opts, :http_opts, [])
-    resp = :httpc.request(req, http_opts, body_format: :binary)
+    resp = :httpc.request(meth, request, http_opts, [body_format: :binary])
 
     case resp do
       {:ok, {{_http, status, _reason}, resp_headers, resp_body}} ->

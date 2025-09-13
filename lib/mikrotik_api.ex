@@ -14,7 +14,6 @@ defmodule MikrotikApi do
 
   @type method :: :get | :post | :put | :patch | :delete
 
-  @transport Application.compile_env(:mikrotik_api, :transport, MikrotikApi.Transport.Httpc)
   @base_path "/rest"
 
   @doc """
@@ -25,7 +24,8 @@ defmodule MikrotikApi do
           {:ok, any() | nil} | {:error, Error.t()}
   def call(%Auth{} = auth, ip, method, path, opts \\ []) when is_binary(ip) and is_binary(path) do
     started = System.monotonic_time()
-    scheme = Keyword.get(opts, :scheme, :https)
+    default_scheme = Application.get_env(:mikrotik_api, :default_scheme, :http)
+    scheme = Keyword.get(opts, :scheme, default_scheme)
     port = Keyword.get(opts, :port, default_port(scheme))
 
     url = build_url(ip, port, scheme, path, Keyword.get(opts, :params, %{}))
@@ -35,14 +35,14 @@ defmodule MikrotikApi do
 
     http_opts = httpc_options(auth)
 
-    case @transport.request(method, to_charlist(url), headers, body, http_opts: http_opts) do
+    case transport_module().request(method, to_charlist(url), headers, body, http_opts: http_opts) do
       {:ok, {status, _resp_headers, resp_body}} ->
         duration_ms = monotonic_ms_since(started)
         Logger.debug(fn ->
           "mikrotik_api #{method} #{path} status=#{status} duration_ms=#{duration_ms}"
         end)
 
-        handle_response(status, resp_body)
+        handle_response(status, resp_body, opts)
 
       {:error, reason} ->
         duration_ms = monotonic_ms_since(started)
@@ -95,7 +95,86 @@ defmodule MikrotikApi do
     call(auth, ip, :delete, path, opts)
   end
 
+  # -- resource helpers --
+
+  @doc """
+  GET /system/resource
+  """
+  @spec system_resource(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def system_resource(auth, ip, opts \\ []) do
+    get(auth, ip, "/system/resource", opts)
+  end
+
+  @doc """
+  GET /interface
+  """
+  @spec interface_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def interface_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface", opts)
+  end
+
+  @doc """
+  GET /ip/address
+  """
+  @spec ip_address_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def ip_address_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/address", opts)
+  end
+
+  @doc """
+  POST /ip/address
+  """
+  @spec ip_address_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def ip_address_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/ip/address", attrs, opts)
+  end
+
+  @doc """
+  PATCH /ip/address/{id}
+  """
+  @spec ip_address_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ip_address_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/ip/address/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /ip/address/{id}
+  """
+  @spec ip_address_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def ip_address_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/ip/address/#{id}", opts)
+  end
+
+  @doc """
+  GET /ip/firewall/filter
+  """
+  @spec firewall_filter_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def firewall_filter_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/firewall/filter", opts)
+  end
+
+  @doc """
+  POST /ip/firewall/filter
+  """
+  @spec firewall_filter_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def firewall_filter_add(auth, ip, rule, opts \\ []) when is_map(rule) or is_list(rule) do
+    post(auth, ip, "/ip/firewall/filter", rule, opts)
+  end
+
+  @doc """
+  DELETE /ip/firewall/filter/{id}
+  """
+  @spec firewall_filter_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def firewall_filter_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/ip/firewall/filter/#{id}", opts)
+  end
+
   # -- internal helpers --
+
+  defp transport_module do
+    Application.get_env(:mikrotik_api, :transport, MikrotikApi.Transport.Httpc)
+  end
 
   defp default_port(:https), do: 443
   defp default_port(:http), do: 80
@@ -147,7 +226,7 @@ defmodule MikrotikApi do
   end
 
   defp headers_with_ct(headers) do
-    [{'content-type', 'application/json'} | headers]
+    [{~c"content-type", ~c"application/json"} | headers]
   end
 
   defp basic_auth_header(%Auth{username: u, password: p}) do
@@ -163,23 +242,27 @@ defmodule MikrotikApi do
 
     [
       ssl: ssl_verify,
-      timeout: auth.connect_timeout,
-      recv_timeout: auth.recv_timeout
+      connect_timeout: auth.connect_timeout,
+      timeout: auth.recv_timeout
     ]
   end
 
-  defp handle_response(status, body) when status in 200..299 do
-    cond do
-      body == "" or status == 204 -> {:ok, nil}
-      true ->
-        case MikrotikApi.JSON.decode(body) do
-          {:ok, data} -> {:ok, data}
-          {:error, reason} -> {:error, %Error{status: status, reason: :decode_error, details: reason}}
-        end
+  defp handle_response(status, body, _opts) when status in 200..299 and (body == "" or status == 204) do
+    {:ok, nil}
+  end
+
+  defp handle_response(status, body, opts) when status in 200..299 do
+    if Keyword.get(opts, :decode, true) do
+      case MikrotikApi.JSON.decode(body) do
+        {:ok, data} -> {:ok, data}
+        {:error, reason} -> {:error, %Error{status: status, reason: :decode_error, details: reason}}
+      end
+    else
+      {:ok, body}
     end
   end
 
-  defp handle_response(status, body) do
+  defp handle_response(status, body, _opts) do
     {:error, %Error{status: status, reason: :http_error, details: truncate(body)}}
   end
 
@@ -188,24 +271,5 @@ defmodule MikrotikApi do
 
   defp monotonic_ms_since(started) do
     System.convert_time_unit(System.monotonic_time() - started, :native, :millisecond)
-  end
-end
-
-defmodule MikrotikApi do
-  @moduledoc """
-  Documentation for `MikrotikApi`.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> MikrotikApi.hello()
-      :world
-
-  """
-  def hello do
-    :world
   end
 end
