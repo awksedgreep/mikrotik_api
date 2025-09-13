@@ -42,7 +42,8 @@ defmodule MikrotikApi do
           "mikrotik_api #{method} #{path} status=#{status} duration_ms=#{duration_ms}"
         end)
 
-        handle_response(status, resp_body, opts)
+        opts_with_path = Keyword.put(opts, :_path, path)
+        handle_response(status, resp_body, opts_with_path)
 
       {:error, reason} ->
         duration_ms = monotonic_ms_since(started)
@@ -170,6 +171,344 @@ defmodule MikrotikApi do
     delete(auth, ip, "/ip/firewall/filter/#{id}", opts)
   end
 
+  @doc """
+  PATCH /interface/{id} with attrs
+  """
+  @spec interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def interface_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/#{id}", attrs, opts)
+  end
+
+  @doc """
+  Convenience: set disabled=no
+  """
+  @spec interface_enable(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def interface_enable(auth, ip, id, opts \\ []) when is_binary(id) do
+    interface_update(auth, ip, id, %{"disabled" => "false"}, opts)
+  end
+
+  @doc """
+  Convenience: set disabled=yes
+  """
+  @spec interface_disable(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def interface_disable(auth, ip, id, opts \\ []) when is_binary(id) do
+    interface_update(auth, ip, id, %{"disabled" => "true"}, opts)
+  end
+
+  @doc """
+  GET /ip/dhcp-server/lease
+  """
+  @spec dhcp_lease_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def dhcp_lease_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/dhcp-server/lease", opts)
+  end
+
+  @doc """
+  POST /ip/dhcp-server/lease
+  """
+  @spec dhcp_lease_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def dhcp_lease_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/ip/dhcp-server/lease", attrs, opts)
+  end
+
+  @doc """
+  PATCH /ip/dhcp-server/lease/{id}
+  """
+  @spec dhcp_lease_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def dhcp_lease_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/ip/dhcp-server/lease/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /ip/dhcp-server/lease/{id}
+  """
+  @spec dhcp_lease_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def dhcp_lease_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/ip/dhcp-server/lease/#{id}", opts)
+  end
+
+  @doc """
+  GET /ip/route
+  """
+  @spec route_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def route_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/route", opts)
+  end
+
+  @doc """
+  POST /ip/route
+  """
+  @spec route_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def route_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/ip/route", attrs, opts)
+  end
+
+  @doc """
+  DELETE /ip/route/{id}
+  """
+  @spec route_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def route_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/ip/route/#{id}", opts)
+  end
+
+  # Bridges
+
+  @doc """
+  GET /interface/bridge
+  """
+  @spec bridge_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/bridge", opts)
+  end
+
+  @doc """
+  POST /interface/bridge
+  """
+  @spec bridge_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/interface/bridge", attrs, opts)
+  end
+
+  @doc """
+  PATCH /interface/bridge/{id}
+  """
+  @spec bridge_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/bridge/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/bridge/{id}
+  """
+  @spec bridge_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/bridge/#{id}", opts)
+  end
+
+  # Bridge ports
+
+  @doc """
+  GET /interface/bridge/port
+  """
+  @spec bridge_port_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_port_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/bridge/port", opts)
+  end
+
+  @doc """
+  POST /interface/bridge/port
+  """
+  @spec bridge_port_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_port_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/interface/bridge/port", attrs, opts)
+  end
+
+  @doc """
+  PATCH /interface/bridge/port/{id}
+  """
+  @spec bridge_port_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_port_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/bridge/port/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/bridge/port/{id}
+  """
+  @spec bridge_port_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_port_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/bridge/port/#{id}", opts)
+  end
+
+  # Bridge VLANs
+
+  @doc """
+  GET /interface/bridge/vlan
+  """
+  @spec bridge_vlan_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_vlan_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/bridge/vlan", opts)
+  end
+
+  @doc """
+  POST /interface/bridge/vlan
+  """
+  @spec bridge_vlan_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_vlan_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/interface/bridge/vlan", attrs, opts)
+  end
+
+  @doc """
+  PATCH /interface/bridge/vlan/{id}
+  """
+  @spec bridge_vlan_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_vlan_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/bridge/vlan/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/bridge/vlan/{id}
+  """
+  @spec bridge_vlan_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def bridge_vlan_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/bridge/vlan/#{id}", opts)
+  end
+
+  # Wireless (legacy wireless package)
+
+  @doc """
+  GET /interface/wireless
+  """
+  @spec wireless_interface_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_interface_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wireless", opts)
+  end
+
+  @doc """
+  POST /interface/wireless
+  """
+  @spec wireless_interface_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_interface_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/interface/wireless", attrs, opts)
+  end
+
+  @doc """
+  PATCH /interface/wireless/{id}
+  """
+  @spec wireless_interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_interface_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/wireless/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/wireless/{id}
+  """
+  @spec wireless_interface_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_interface_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/wireless/#{id}", opts)
+  end
+
+  @doc """
+  GET /interface/wireless/registration-table
+  """
+  @spec wireless_registration_table(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_registration_table(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wireless/registration-table", opts)
+  end
+
+  @doc """
+  GET /interface/wireless/security-profiles
+  """
+  @spec wireless_security_profile_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_security_profile_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wireless/security-profiles", opts)
+  end
+
+  @doc """
+  POST /interface/wireless/security-profiles
+  """
+  @spec wireless_security_profile_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_security_profile_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/interface/wireless/security-profiles", attrs, opts)
+  end
+
+  @doc """
+  PATCH /interface/wireless/security-profiles/{id}
+  """
+  @spec wireless_security_profile_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_security_profile_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/wireless/security-profiles/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/wireless/security-profiles/{id}
+  """
+  @spec wireless_security_profile_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_security_profile_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/wireless/security-profiles/#{id}", opts)
+  end
+
+  # WiFi (wifiwave2 package)
+
+  @doc """
+  GET /interface/wifi
+  """
+  @spec wifi_interface_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_interface_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wifi", opts)
+  end
+
+  @doc """
+  PATCH /interface/wifi/{id}
+  """
+  @spec wifi_interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_interface_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/wifi/#{id}", attrs, opts)
+  end
+
+  @doc """
+  GET /interface/wifi/ssid
+  """
+  @spec wifi_ssid_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_ssid_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wifi/ssid", opts)
+  end
+
+  @doc """
+  POST /interface/wifi/ssid
+  """
+  @spec wifi_ssid_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_ssid_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/interface/wifi/ssid", attrs, opts)
+  end
+
+  @doc """
+  PATCH /interface/wifi/ssid/{id}
+  """
+  @spec wifi_ssid_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_ssid_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/wifi/ssid/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/wifi/ssid/{id}
+  """
+  @spec wifi_ssid_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_ssid_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/wifi/ssid/#{id}", opts)
+  end
+
+  @doc """
+  GET /interface/wifi/security
+  """
+  @spec wifi_security_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_security_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wifi/security", opts)
+  end
+
+  @doc """
+  POST /interface/wifi/security
+  """
+  @spec wifi_security_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_security_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/interface/wifi/security", attrs, opts)
+  end
+
+  @doc """
+  PATCH /interface/wifi/security/{id}
+  """
+  @spec wifi_security_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_security_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/wifi/security/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/wifi/security/{id}
+  """
+  @spec wifi_security_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wifi_security_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/wifi/security/#{id}", opts)
+  end
+
   # -- internal helpers --
 
   defp transport_module do
@@ -234,14 +573,22 @@ defmodule MikrotikApi do
   end
 
   defp httpc_options(%Auth{} = auth) do
-    ssl_verify =
+    base_ssl =
       case auth.verify do
         :verify_none -> [verify: :verify_none]
-        _ -> [verify: :verify_peer]
+        _ ->
+          cacerts = default_cacerts()
+          if has_user_cacert_option?(auth.ssl_opts) do
+            [verify: :verify_peer]
+          else
+            [verify: :verify_peer, cacerts: cacerts]
+          end
       end
 
+    ssl_opts = Keyword.merge(base_ssl, auth.ssl_opts)
+
     [
-      ssl: ssl_verify,
+      ssl: ssl_opts,
       connect_timeout: auth.connect_timeout,
       timeout: auth.recv_timeout
     ]
@@ -262,8 +609,28 @@ defmodule MikrotikApi do
     end
   end
 
-  defp handle_response(status, body, _opts) do
-    {:error, %Error{status: status, reason: :http_error, details: truncate(body)}}
+  defp handle_response(status, body, opts) do
+    path = Keyword.get(opts, :_path)
+
+    cond do
+      status == 500 and is_binary(path) and String.starts_with?(path, "/interface/wifi/ssid") ->
+        {:error, %Error{status: status, reason: :wifi_ssid_unavailable, details: truncate(body)}}
+
+      true ->
+        {:error, %Error{status: status, reason: :http_error, details: truncate(body)}}
+    end
+  end
+
+  defp has_user_cacert_option?(opts) do
+    Keyword.has_key?(opts, :cacerts) or Keyword.has_key?(opts, :cacertfile)
+  end
+
+  defp default_cacerts do
+    try do
+      :public_key.cacerts_get()
+    rescue
+      _ -> []
+    end
   end
 
   defp truncate(bin) when is_binary(bin) and byte_size(bin) > 4096, do: binary_part(bin, 0, 4096)

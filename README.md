@@ -101,6 +101,11 @@ Helper functions (selected)
 - DHCP leases: dhcp_lease_list/2, dhcp_lease_add/3, dhcp_lease_update/4, dhcp_lease_delete/3
 - Firewall filter: firewall_filter_list/2, firewall_filter_add/3, firewall_filter_delete/3
 - Routes: route_list/2, route_add/3, route_delete/3
+- Bridges: bridge_list/2, bridge_add/3, bridge_update/4, bridge_delete/3
+- Bridge ports: bridge_port_list/2, bridge_port_add/3, bridge_port_update/4, bridge_port_delete/3
+- Bridge VLANs: bridge_vlan_list/2, bridge_vlan_add/3, bridge_vlan_update/4, bridge_vlan_delete/3
+- Wireless (legacy): wireless_interface_list/2, wireless_interface_add/3, wireless_interface_update/4, wireless_interface_delete/3, wireless_registration_table/2, wireless_security_profile_list/2, wireless_security_profile_add/3, wireless_security_profile_update/4, wireless_security_profile_delete/3
+- WiFi (wifiwave2): wifi_interface_list/2, wifi_interface_update/4, wifi_ssid_list/2, wifi_ssid_add/3, wifi_ssid_update/4, wifi_ssid_delete/3, wifi_security_list/2, wifi_security_add/3, wifi_security_update/4, wifi_security_delete/3
 
 HTTP over WireGuard (decode: true)
 ```elixir
@@ -115,6 +120,9 @@ ip = System.get_env("MT_IP")
 {:ok, sys} = MikrotikApi.system_resource(auth, ip, scheme: :http)
 {:ok, ip_addrs} = MikrotikApi.ip_address_list(auth, ip, scheme: :http)
 ```
+
+WiFi notes
+- Some wifiwave2 subresources (e.g., /interface/wifi/ssid) may return 500 on devices without WiFi configured or when the package/version doesn’t expose SSIDs yet. The library will return {:error, %MikrotikApi.Error{reason: :wifi_ssid_unavailable}} in this case.
 
 HTTPS with verify_peer and CA
 ```elixir
