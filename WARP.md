@@ -26,6 +26,7 @@ Common development commands
 Repository-specific rules and notes
 - Logging: Do not use IO.puts/IO.inspect. Use Logger.xxx for all logging and redact credentials in messages.
 - Transport: Default transport is internal via OTP (:httpc/:ssl). If hard limitations arise, consider introducing a pluggable transport and optionally adding an external client later without changing the public API.
+- Scheme: The default scheme is configurable via application env (:mikrotik_api, :default_scheme). Over WireGuard, :http is acceptable; callers may override per call with scheme: :http | :https.
 - Agent rules: If an AGENTS.md is added to this repo, follow it exactly.
 - Linting: No linter is configured in this repo. If you add Credo later, update this file with the exact commands.
 - Files observed: mix.exs, README.md, .formatter.exs, and rest_api.md. Library modules and tests live under lib/ and test/ respectively.

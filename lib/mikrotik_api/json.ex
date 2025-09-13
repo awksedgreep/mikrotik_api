@@ -120,7 +120,7 @@ defmodule MikrotikApi.JSON do
 
   # numbers
   defp parse_number(bin) do
-    {num_str, rest} = take_while(bin, fn c -> c in '0123456789+-.eE' end)
+    {num_str, rest} = take_while(bin, fn c -> c in ~c"0123456789+-.eE" end)
     case Integer.parse(num_str) do
       {i, ""} -> {i, rest}
       _ ->
