@@ -12,7 +12,7 @@ defmodule MikrotikApi.Transport.Httpc do
       end
 
     http_opts = Keyword.get(opts, :http_opts, [])
-    resp = :httpc.request(meth, request, http_opts, [body_format: :binary])
+    resp = :httpc.request(meth, request, http_opts, body_format: :binary)
 
     case resp do
       {:ok, {{_http, status, _reason}, resp_headers, resp_body}} ->

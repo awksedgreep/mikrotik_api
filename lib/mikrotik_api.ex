@@ -6,7 +6,7 @@ defmodule MikrotikApi do
   - Establish an %MikrotikApi.Auth{} once.
   - Pass Auth and a target IP (IPv4/IPv6 literal) to each call.
 
-  Transport and JSON are internal. Logging uses Logger only.
+  Transport via OTP; JSON via Elixir's built-in JSON. Logging uses Logger only.
   """
 
   require Logger
@@ -35,9 +35,13 @@ defmodule MikrotikApi do
 
     http_opts = httpc_options(auth)
 
-    case transport_module().request(method, to_charlist(url), headers, body, http_opts: http_opts) do
+    case transport_module().request(method, to_charlist(url), headers, body,
+           http_opts: http_opts,
+           owner_pid: Keyword.get(opts, :owner_pid, self())
+         ) do
       {:ok, {status, _resp_headers, resp_body}} ->
         duration_ms = monotonic_ms_since(started)
+
         Logger.debug(fn ->
           "mikrotik_api #{method} #{path} status=#{status} duration_ms=#{duration_ms}"
         end)
@@ -55,7 +59,8 @@ defmodule MikrotikApi do
   @doc """
   GET a path under /rest on the target.
   """
-  @spec get(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec get(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def get(auth, ip, path, opts \\ []) do
     call(auth, ip, :get, path, opts)
   end
@@ -101,7 +106,8 @@ defmodule MikrotikApi do
   @doc """
   GET /system/resource
   """
-  @spec system_resource(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec system_resource(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def system_resource(auth, ip, opts \\ []) do
     get(auth, ip, "/system/resource", opts)
   end
@@ -109,7 +115,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface
   """
-  @spec interface_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec interface_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def interface_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface", opts)
   end
@@ -117,7 +124,8 @@ defmodule MikrotikApi do
   @doc """
   GET /ip/address
   """
-  @spec ip_address_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec ip_address_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def ip_address_list(auth, ip, opts \\ []) do
     get(auth, ip, "/ip/address", opts)
   end
@@ -125,7 +133,8 @@ defmodule MikrotikApi do
   @doc """
   POST /ip/address
   """
-  @spec ip_address_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec ip_address_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def ip_address_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/ip/address", attrs, opts)
   end
@@ -135,19 +144,24 @@ defmodule MikrotikApi do
   Requires attrs to include at least "address" and optionally "interface"; matches existing entries by these keys.
   Returns {:ok, address} when found or created.
   """
-  @spec ip_address_ensure(Auth.t(), String.t(), map(), Keyword.t()) :: {:ok, String.t()} | {:error, Error.t()}
+  @spec ip_address_ensure(Auth.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, Error.t()}
   def ip_address_ensure(auth, ip, attrs, opts \\ []) when is_map(attrs) do
     with {:ok, list} <- ip_address_list(auth, ip, opts) do
       addr = Map.get(attrs, "address")
+
       if is_nil(addr) do
         {:error, %Error{status: nil, reason: :invalid_argument, details: "address required"}}
       else
         iface = Map.get(attrs, "interface")
-        exists? = Enum.any?(list, fn e ->
-          match_addr = e["address"] == addr
-          match_iface = is_nil(iface) or e["interface"] == iface
-          match_addr and match_iface
-        end)
+
+        exists? =
+          Enum.any?(list, fn e ->
+            match_addr = e["address"] == addr
+            match_iface = is_nil(iface) or e["interface"] == iface
+            match_addr and match_iface
+          end)
+
         if exists? do
           {:ok, addr}
         else
@@ -172,7 +186,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /ip/address/{id}
   """
-  @spec ip_address_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec ip_address_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def ip_address_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/ip/address/#{id}", opts)
   end
@@ -180,7 +195,8 @@ defmodule MikrotikApi do
   @doc """
   GET /ip/firewall/filter
   """
-  @spec firewall_filter_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec firewall_filter_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def firewall_filter_list(auth, ip, opts \\ []) do
     get(auth, ip, "/ip/firewall/filter", opts)
   end
@@ -188,7 +204,8 @@ defmodule MikrotikApi do
   @doc """
   POST /ip/firewall/filter
   """
-  @spec firewall_filter_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec firewall_filter_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def firewall_filter_add(auth, ip, rule, opts \\ []) when is_map(rule) or is_list(rule) do
     post(auth, ip, "/ip/firewall/filter", rule, opts)
   end
@@ -198,11 +215,17 @@ defmodule MikrotikApi do
   By default, matches existing by ["chain", "action"]. You can pass unique_keys: [..] in opts to control matching.
   Returns {:ok, Map.t()} with the matched key-values when found or created.
   """
-  @spec firewall_filter_ensure(Auth.t(), String.t(), map(), Keyword.t()) :: {:ok, map()} | {:error, Error.t()}
+  @spec firewall_filter_ensure(Auth.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, map()} | {:error, Error.t()}
   def firewall_filter_ensure(auth, ip, rule, opts \\ []) when is_map(rule) do
     unique_keys = Keyword.get(opts, :unique_keys, ["chain", "action"])
+
     with {:ok, list} <- firewall_filter_list(auth, ip, opts) do
-      found = Enum.find(list, fn e -> Enum.all?(unique_keys, fn k -> Map.get(e, k) == Map.get(rule, k) end) end)
+      found =
+        Enum.find(list, fn e ->
+          Enum.all?(unique_keys, fn k -> Map.get(e, k) == Map.get(rule, k) end)
+        end)
+
       if found do
         {:ok, Map.new(unique_keys, fn k -> {k, Map.get(found, k)} end)}
       else
@@ -217,7 +240,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /ip/firewall/filter/{id}
   """
-  @spec firewall_filter_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec firewall_filter_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def firewall_filter_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/ip/firewall/filter/#{id}", opts)
   end
@@ -227,7 +251,8 @@ defmodule MikrotikApi do
   @doc """
   GET /ip/firewall/nat
   """
-  @spec firewall_nat_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec firewall_nat_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def firewall_nat_list(auth, ip, opts \\ []) do
     get(auth, ip, "/ip/firewall/nat", opts)
   end
@@ -235,7 +260,8 @@ defmodule MikrotikApi do
   @doc """
   POST /ip/firewall/nat
   """
-  @spec firewall_nat_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec firewall_nat_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def firewall_nat_add(auth, ip, rule, opts \\ []) when is_map(rule) or is_list(rule) do
     post(auth, ip, "/ip/firewall/nat", rule, opts)
   end
@@ -243,7 +269,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /ip/firewall/nat/{id}
   """
-  @spec firewall_nat_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec firewall_nat_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def firewall_nat_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/ip/firewall/nat/#{id}", opts)
   end
@@ -252,11 +279,17 @@ defmodule MikrotikApi do
   Ensure a firewall NAT rule exists. By default matches by ["chain", "action"]. You can pass unique_keys: [..] in opts.
   Returns {:ok, map()} of matched keys when found or created.
   """
-  @spec firewall_nat_ensure(Auth.t(), String.t(), map(), Keyword.t()) :: {:ok, map()} | {:error, Error.t()}
+  @spec firewall_nat_ensure(Auth.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, map()} | {:error, Error.t()}
   def firewall_nat_ensure(auth, ip, rule, opts \\ []) when is_map(rule) do
     unique_keys = Keyword.get(opts, :unique_keys, ["chain", "action"])
+
     with {:ok, list} <- firewall_nat_list(auth, ip, opts) do
-      found = Enum.find(list, fn e -> Enum.all?(unique_keys, fn k -> Map.get(e, k) == Map.get(rule, k) end) end)
+      found =
+        Enum.find(list, fn e ->
+          Enum.all?(unique_keys, fn k -> Map.get(e, k) == Map.get(rule, k) end)
+        end)
+
       if found do
         {:ok, Map.new(unique_keys, fn k -> {k, Map.get(found, k)} end)}
       else
@@ -271,7 +304,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /interface/{id} with attrs
   """
-  @spec interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def interface_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/#{id}", attrs, opts)
   end
@@ -280,18 +314,24 @@ defmodule MikrotikApi do
   Ensure interface settings. Ident can be an interface name or .id. Applies only differing keys from attrs.
   Returns {:ok, %{id: id, name: name, changed: [keys]}} when up-to-date or updated; {:error, not_found} if interface not present.
   """
-  @spec interface_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, %{id: String.t(), name: String.t(), changed: [String.t()]}} | {:error, term()}
-  def interface_ensure(auth, ip, ident, attrs, opts \\ []) when is_binary(ident) and is_map(attrs) do
+  @spec interface_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, %{id: String.t(), name: String.t(), changed: [String.t()]}} | {:error, term()}
+  def interface_ensure(auth, ip, ident, attrs, opts \\ [])
+      when is_binary(ident) and is_map(attrs) do
     with {:ok, list} <- interface_list(auth, ip, opts) do
       case Enum.find(list, fn e -> e[".id"] == ident or e["name"] == ident end) do
-        nil -> {:error, :not_found}
+        nil ->
+          {:error, :not_found}
+
         entry ->
           id = entry[".id"]
           name = entry["name"]
+
           changed_map =
             attrs
             |> Enum.reduce(%{}, fn {k, v}, acc ->
               existing = Map.get(entry, k)
+
               if existing == v do
                 acc
               else
@@ -302,11 +342,16 @@ defmodule MikrotikApi do
           changed_keys = Map.keys(changed_map)
 
           case changed_keys do
-            [] -> {:ok, %{id: id, name: name, changed: []}}
+            [] ->
+              {:ok, %{id: id, name: name, changed: []}}
+
             _ ->
               case interface_update(auth, ip, id, changed_map, opts) do
-                {:ok, _} -> {:ok, %{id: id, name: name, changed: Enum.map(changed_keys, &to_string/1)}}
-                {:error, _} = err -> err
+                {:ok, _} ->
+                  {:ok, %{id: id, name: name, changed: Enum.map(changed_keys, &to_string/1)}}
+
+                {:error, _} = err ->
+                  err
               end
           end
       end
@@ -316,7 +361,8 @@ defmodule MikrotikApi do
   @doc """
   Convenience: set disabled=no
   """
-  @spec interface_enable(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec interface_enable(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def interface_enable(auth, ip, id, opts \\ []) when is_binary(id) do
     interface_update(auth, ip, id, %{"disabled" => "false"}, opts)
   end
@@ -324,7 +370,8 @@ defmodule MikrotikApi do
   @doc """
   Convenience: set disabled=yes
   """
-  @spec interface_disable(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec interface_disable(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def interface_disable(auth, ip, id, opts \\ []) when is_binary(id) do
     interface_update(auth, ip, id, %{"disabled" => "true"}, opts)
   end
@@ -332,7 +379,8 @@ defmodule MikrotikApi do
   @doc """
   GET /ip/dhcp-server/lease
   """
-  @spec dhcp_lease_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec dhcp_lease_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def dhcp_lease_list(auth, ip, opts \\ []) do
     get(auth, ip, "/ip/dhcp-server/lease", opts)
   end
@@ -340,7 +388,8 @@ defmodule MikrotikApi do
   @doc """
   POST /ip/dhcp-server/lease
   """
-  @spec dhcp_lease_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec dhcp_lease_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def dhcp_lease_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/ip/dhcp-server/lease", attrs, opts)
   end
@@ -348,15 +397,23 @@ defmodule MikrotikApi do
   @doc """
   Ensure a DHCP lease exists. Matches by ["address", "mac-address"]. Returns {:ok, %{address: ..., mac: ...}} if found or created.
   """
-  @spec dhcp_lease_ensure(Auth.t(), String.t(), map(), Keyword.t()) :: {:ok, map()} | {:error, Error.t()}
+  @spec dhcp_lease_ensure(Auth.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, map()} | {:error, Error.t()}
   def dhcp_lease_ensure(auth, ip, attrs, opts \\ []) when is_map(attrs) do
     with {:ok, list} <- dhcp_lease_list(auth, ip, opts) do
       addr = Map.get(attrs, "address")
       mac = Map.get(attrs, "mac-address")
+
       if is_nil(addr) or is_nil(mac) do
-        {:error, %Error{status: nil, reason: :invalid_argument, details: "address and mac-address required"}}
+        {:error,
+         %Error{
+           status: nil,
+           reason: :invalid_argument,
+           details: "address and mac-address required"
+         }}
       else
         found = Enum.find(list, fn e -> e["address"] == addr and e["mac-address"] == mac end)
+
         if found do
           {:ok, %{address: addr, mac: mac}}
         else
@@ -372,7 +429,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /ip/dhcp-server/lease/{id}
   """
-  @spec dhcp_lease_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec dhcp_lease_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def dhcp_lease_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/ip/dhcp-server/lease/#{id}", attrs, opts)
   end
@@ -380,7 +438,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /ip/dhcp-server/lease/{id}
   """
-  @spec dhcp_lease_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec dhcp_lease_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def dhcp_lease_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/ip/dhcp-server/lease/#{id}", opts)
   end
@@ -396,7 +455,8 @@ defmodule MikrotikApi do
   @doc """
   POST /ip/route
   """
-  @spec route_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec route_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def route_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/ip/route", attrs, opts)
   end
@@ -404,15 +464,23 @@ defmodule MikrotikApi do
   @doc """
   Ensure a route exists. Matches by ["dst-address", "gateway"]. Returns {:ok, %{dst: ..., gw: ...}} if found or created.
   """
-  @spec route_ensure(Auth.t(), String.t(), map(), Keyword.t()) :: {:ok, map()} | {:error, Error.t()}
+  @spec route_ensure(Auth.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, map()} | {:error, Error.t()}
   def route_ensure(auth, ip, attrs, opts \\ []) when is_map(attrs) do
     with {:ok, list} <- route_list(auth, ip, opts) do
       dst = Map.get(attrs, "dst-address")
       gw = Map.get(attrs, "gateway")
+
       if is_nil(dst) or is_nil(gw) do
-        {:error, %Error{status: nil, reason: :invalid_argument, details: "dst-address and gateway required"}}
+        {:error,
+         %Error{
+           status: nil,
+           reason: :invalid_argument,
+           details: "dst-address and gateway required"
+         }}
       else
         found = Enum.find(list, fn e -> e["dst-address"] == dst and e["gateway"] == gw end)
+
         if found do
           {:ok, %{dst: dst, gw: gw}}
         else
@@ -428,7 +496,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /ip/route/{id}
   """
-  @spec route_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec route_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def route_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/ip/route/#{id}", opts)
   end
@@ -446,7 +515,8 @@ defmodule MikrotikApi do
   @doc """
   POST /interface/bridge
   """
-  @spec bridge_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/interface/bridge", attrs, opts)
   end
@@ -454,17 +524,21 @@ defmodule MikrotikApi do
   @doc """
   Ensure a bridge exists by name. Returns {:ok, name} if found or created.
   """
-  @spec bridge_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, String.t()} | {:error, Error.t()}
+  @spec bridge_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, Error.t()}
   def bridge_ensure(auth, ip, name, attrs \\ %{}, opts \\ []) when is_binary(name) do
     with {:ok, list} <- bridge_list(auth, ip, opts) do
       case Enum.find(list, &(&1["name"] == name)) do
         nil ->
           merged = Map.put(attrs, "name", name)
+
           case bridge_add(auth, ip, merged, opts) do
             {:ok, _} -> {:ok, name}
             {:error, _} = err -> err
           end
-        _found -> {:ok, name}
+
+        _found ->
+          {:ok, name}
       end
     end
   end
@@ -472,7 +546,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /interface/bridge/{id}
   """
-  @spec bridge_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/bridge/#{id}", attrs, opts)
   end
@@ -480,7 +555,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /interface/bridge/{id}
   """
-  @spec bridge_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/interface/bridge/#{id}", opts)
   end
@@ -490,7 +566,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/bridge/port
   """
-  @spec bridge_port_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_port_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_port_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/bridge/port", opts)
   end
@@ -498,7 +575,8 @@ defmodule MikrotikApi do
   @doc """
   POST /interface/bridge/port
   """
-  @spec bridge_port_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_port_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_port_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/interface/bridge/port", attrs, opts)
   end
@@ -506,7 +584,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /interface/bridge/port/{id}
   """
-  @spec bridge_port_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_port_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_port_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/bridge/port/#{id}", attrs, opts)
   end
@@ -515,14 +594,18 @@ defmodule MikrotikApi do
   Ensure a bridge port exists for the given bridge and interface.
   Returns {:ok, {bridge, interface}} when found or created.
   """
-  @spec bridge_port_ensure(Auth.t(), String.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, {String.t(), String.t()}} | {:error, Error.t()}
-  def bridge_port_ensure(auth, ip, bridge, interface, attrs \\ %{}, opts \\ []) when is_binary(bridge) and is_binary(interface) do
+  @spec bridge_port_ensure(Auth.t(), String.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, {String.t(), String.t()}} | {:error, Error.t()}
+  def bridge_port_ensure(auth, ip, bridge, interface, attrs \\ %{}, opts \\ [])
+      when is_binary(bridge) and is_binary(interface) do
     with {:ok, list} <- bridge_port_list(auth, ip, opts) do
       found = Enum.find(list, fn e -> e["bridge"] == bridge and e["interface"] == interface end)
+
       if found do
         {:ok, {bridge, interface}}
       else
         merged = attrs |> Map.put("bridge", bridge) |> Map.put("interface", interface)
+
         case bridge_port_add(auth, ip, merged, opts) do
           {:ok, _} -> {:ok, {bridge, interface}}
           {:error, _} = err -> err
@@ -534,7 +617,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /interface/bridge/port/{id}
   """
-  @spec bridge_port_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_port_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_port_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/interface/bridge/port/#{id}", opts)
   end
@@ -544,7 +628,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/bridge/vlan
   """
-  @spec bridge_vlan_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_vlan_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_vlan_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/bridge/vlan", opts)
   end
@@ -552,7 +637,8 @@ defmodule MikrotikApi do
   @doc """
   POST /interface/bridge/vlan
   """
-  @spec bridge_vlan_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_vlan_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_vlan_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/interface/bridge/vlan", attrs, opts)
   end
@@ -561,28 +647,38 @@ defmodule MikrotikApi do
   Ensure a bridge VLAN entry exists for the given bridge and vlan-ids.
   Returns {:ok, {bridge, vlan_ids}} when found or created.
   """
-  @spec bridge_vlan_ensure(Auth.t(), String.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, {String.t(), String.t()}} | {:error, Error.t()}
-  def bridge_vlan_ensure(auth, ip, bridge, vlan_ids, attrs \\ %{}, opts \\ []) when is_binary(bridge) and is_binary(vlan_ids) do
+  @spec bridge_vlan_ensure(Auth.t(), String.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, {String.t(), String.t()}} | {:error, Error.t()}
+  def bridge_vlan_ensure(auth, ip, bridge, vlan_ids, attrs \\ %{}, opts \\ [])
+      when is_binary(bridge) and is_binary(vlan_ids) do
     case bridge_vlan_list(auth, ip, opts) do
       {:ok, list} when is_list(list) ->
         case Enum.find(list, &(&1["bridge"] == bridge and &1["vlan-ids"] == vlan_ids)) do
           nil ->
             merged = attrs |> Map.put("bridge", bridge) |> Map.put("vlan-ids", vlan_ids)
+
             case bridge_vlan_add(auth, ip, merged, opts) do
               {:ok, _} -> {:ok, {bridge, vlan_ids}}
               {:error, _} = err -> err
             end
-          _found -> {:ok, {bridge, vlan_ids}}
+
+          _found ->
+            {:ok, {bridge, vlan_ids}}
         end
-      {:error, _} = err -> err
-      other -> other
+
+      {:error, _} = err ->
+        err
+
+      other ->
+        other
     end
   end
 
   @doc """
   PATCH /interface/bridge/vlan/{id}
   """
-  @spec bridge_vlan_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_vlan_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_vlan_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/bridge/vlan/#{id}", attrs, opts)
   end
@@ -590,7 +686,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /interface/bridge/vlan/{id}
   """
-  @spec bridge_vlan_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec bridge_vlan_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def bridge_vlan_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/interface/bridge/vlan/#{id}", opts)
   end
@@ -600,7 +697,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/wireless
   """
-  @spec wireless_interface_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_interface_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireless_interface_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/wireless", opts)
   end
@@ -608,7 +706,8 @@ defmodule MikrotikApi do
   @doc """
   POST /interface/wireless
   """
-  @spec wireless_interface_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_interface_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireless_interface_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/interface/wireless", attrs, opts)
   end
@@ -616,17 +715,21 @@ defmodule MikrotikApi do
   @doc """
   Ensure a legacy wireless interface exists by name.
   """
-  @spec wireless_interface_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, String.t()} | {:error, Error.t()}
+  @spec wireless_interface_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, Error.t()}
   def wireless_interface_ensure(auth, ip, name, attrs \\ %{}, opts \\ []) when is_binary(name) do
     with {:ok, list} <- wireless_interface_list(auth, ip, opts) do
       case Enum.find(list, &(&1["name"] == name)) do
         nil ->
           merged = Map.put(attrs, "name", name)
+
           case wireless_interface_add(auth, ip, merged, opts) do
             {:ok, _} -> {:ok, name}
             {:error, _} = err -> err
           end
-        _found -> {:ok, name}
+
+        _found ->
+          {:ok, name}
       end
     end
   end
@@ -634,7 +737,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /interface/wireless/{id}
   """
-  @spec wireless_interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireless_interface_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/wireless/#{id}", attrs, opts)
   end
@@ -642,7 +746,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /interface/wireless/{id}
   """
-  @spec wireless_interface_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_interface_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireless_interface_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/interface/wireless/#{id}", opts)
   end
@@ -650,7 +755,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/wireless/registration-table
   """
-  @spec wireless_registration_table(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_registration_table(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireless_registration_table(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/wireless/registration-table", opts)
   end
@@ -658,7 +764,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/wireless/security-profiles
   """
-  @spec wireless_security_profile_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_security_profile_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireless_security_profile_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/wireless/security-profiles", opts)
   end
@@ -666,17 +773,22 @@ defmodule MikrotikApi do
   @doc """
   Ensure a legacy wireless security profile exists by name.
   """
-  @spec wireless_security_profile_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, String.t()} | {:error, Error.t()}
-  def wireless_security_profile_ensure(auth, ip, name, attrs \\ %{}, opts \\ []) when is_binary(name) do
+  @spec wireless_security_profile_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, Error.t()}
+  def wireless_security_profile_ensure(auth, ip, name, attrs \\ %{}, opts \\ [])
+      when is_binary(name) do
     with {:ok, list} <- wireless_security_profile_list(auth, ip, opts) do
       case Enum.find(list, &(&1["name"] == name)) do
         nil ->
           merged = Map.put(attrs, "name", name)
+
           case wireless_security_profile_add(auth, ip, merged, opts) do
             {:ok, _} -> {:ok, name}
             {:error, _} = err -> err
           end
-        _found -> {:ok, name}
+
+        _found ->
+          {:ok, name}
       end
     end
   end
@@ -684,15 +796,23 @@ defmodule MikrotikApi do
   @doc """
   POST /interface/wireless/security-profiles
   """
-  @spec wireless_security_profile_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
-  def wireless_security_profile_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+  @spec wireless_security_profile_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireless_security_profile_add(auth, ip, attrs, opts \\ [])
+      when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/interface/wireless/security-profiles", attrs, opts)
   end
 
   @doc """
   PATCH /interface/wireless/security-profiles/{id}
   """
-  @spec wireless_security_profile_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_security_profile_update(
+          Auth.t(),
+          String.t(),
+          String.t(),
+          map() | list(),
+          Keyword.t()
+        ) :: {:ok, any() | nil} | {:error, Error.t()}
   def wireless_security_profile_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/wireless/security-profiles/#{id}", attrs, opts)
   end
@@ -700,7 +820,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /interface/wireless/security-profiles/{id}
   """
-  @spec wireless_security_profile_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireless_security_profile_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireless_security_profile_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/interface/wireless/security-profiles/#{id}", opts)
   end
@@ -711,21 +832,29 @@ defmodule MikrotikApi do
   Ensure a WiFi security profile with the given name exists; returns the found or created entry name.
   If the endpoint is unavailable, returns the underlying error.
   """
-  @spec wifi_security_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, String.t()} | {:error, Error.t()}
+  @spec wifi_security_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, Error.t()}
   def wifi_security_ensure(auth, ip, name, attrs \\ %{}, opts \\ []) when is_binary(name) do
     case wifi_security_list(auth, ip, opts) do
       {:ok, list} when is_list(list) ->
         case Enum.find(list, &(&1["name"] == name)) do
           nil ->
             merged = Map.put(attrs, "name", name)
+
             case wifi_security_add(auth, ip, merged, opts) do
               {:ok, _} -> {:ok, name}
               {:error, _} = err -> err
             end
-          _found -> {:ok, name}
+
+          _found ->
+            {:ok, name}
         end
-      {:error, _} = err -> err
-      other -> other
+
+      {:error, _} = err ->
+        err
+
+      other ->
+        other
     end
   end
 
@@ -733,21 +862,29 @@ defmodule MikrotikApi do
   Ensure a WiFi SSID with the given name exists; returns the found or created entry name.
   If the endpoint is unavailable (:wifi_ssid_unavailable), returns the underlying error.
   """
-  @spec wifi_ssid_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, String.t()} | {:error, Error.t()}
+  @spec wifi_ssid_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, Error.t()}
   def wifi_ssid_ensure(auth, ip, name, attrs \\ %{}, opts \\ []) when is_binary(name) do
     case wifi_ssid_list(auth, ip, opts) do
       {:ok, list} when is_list(list) ->
         case Enum.find(list, &(&1["name"] == name)) do
           nil ->
             merged = Map.put(attrs, "name", name)
+
             case wifi_ssid_add(auth, ip, merged, opts) do
               {:ok, _} -> {:ok, name}
               {:error, _} = err -> err
             end
-          _found -> {:ok, name}
+
+          _found ->
+            {:ok, name}
         end
-      {:error, _} = err -> err
-      other -> other
+
+      {:error, _} = err ->
+        err
+
+      other ->
+        other
     end
   end
 
@@ -764,7 +901,8 @@ defmodule MikrotikApi do
   @doc """
   GET /ip/neighbor
   """
-  @spec neighbor_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec neighbor_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def neighbor_list(auth, ip, opts \\ []) do
     get(auth, ip, "/ip/neighbor", opts)
   end
@@ -774,7 +912,8 @@ defmodule MikrotikApi do
   @doc """
   POST /caps-man/security
   """
-  @spec capsman_security_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec capsman_security_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def capsman_security_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/caps-man/security", attrs, opts)
   end
@@ -782,28 +921,37 @@ defmodule MikrotikApi do
   @doc """
   Ensure a CAPsMAN security profile with the given name exists.
   """
-  @spec capsman_security_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) :: {:ok, String.t()} | {:error, Error.t()}
+  @spec capsman_security_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, Error.t()}
   def capsman_security_ensure(auth, ip, name, attrs \\ %{}, opts \\ []) when is_binary(name) do
     case capsman_security_list(auth, ip, opts) do
       {:ok, list} when is_list(list) ->
         case Enum.find(list, &(&1["name"] == name)) do
           nil ->
             merged = Map.put(attrs, "name", name)
+
             case capsman_security_add(auth, ip, merged, opts) do
               {:ok, _} -> {:ok, name}
               {:error, _} = err -> err
             end
-          _found -> {:ok, name}
+
+          _found ->
+            {:ok, name}
         end
-      {:error, _} = err -> err
-      other -> other
+
+      {:error, _} = err ->
+        err
+
+      other ->
+        other
     end
   end
 
   @doc """
   GET /caps-man/provisioning
   """
-  @spec capsman_provisioning_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec capsman_provisioning_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def capsman_provisioning_list(auth, ip, opts \\ []) do
     get(auth, ip, "/caps-man/provisioning", opts)
   end
@@ -811,8 +959,10 @@ defmodule MikrotikApi do
   @doc """
   POST /caps-man/provisioning
   """
-  @spec capsman_provisioning_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
-  def capsman_provisioning_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+  @spec capsman_provisioning_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def capsman_provisioning_add(auth, ip, attrs, opts \\ [])
+      when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/caps-man/provisioning", attrs, opts)
   end
 
@@ -820,11 +970,17 @@ defmodule MikrotikApi do
   Ensure a CAPsMAN provisioning rule exists. By default matches by ["action", "master-configuration"].
   Returns {:ok, map()} of matched keys when found or created.
   """
-  @spec capsman_provisioning_ensure(Auth.t(), String.t(), map(), Keyword.t()) :: {:ok, map()} | {:error, Error.t()}
+  @spec capsman_provisioning_ensure(Auth.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, map()} | {:error, Error.t()}
   def capsman_provisioning_ensure(auth, ip, rule, opts \\ []) when is_map(rule) do
     unique_keys = Keyword.get(opts, :unique_keys, ["action", "master-configuration"])
+
     with {:ok, list} <- capsman_provisioning_list(auth, ip, opts) do
-      found = Enum.find(list, fn e -> Enum.all?(unique_keys, fn k -> Map.get(e, k) == Map.get(rule, k) end) end)
+      found =
+        Enum.find(list, fn e ->
+          Enum.all?(unique_keys, fn k -> Map.get(e, k) == Map.get(rule, k) end)
+        end)
+
       if found do
         {:ok, Map.new(unique_keys, fn k -> {k, Map.get(found, k)} end)}
       else
@@ -839,7 +995,8 @@ defmodule MikrotikApi do
   @doc """
   GET /caps-man/interface
   """
-  @spec capsman_interface_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec capsman_interface_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def capsman_interface_list(auth, ip, opts \\ []) do
     get(auth, ip, "/caps-man/interface", opts)
   end
@@ -847,7 +1004,8 @@ defmodule MikrotikApi do
   @doc """
   GET /caps-man/registration-table
   """
-  @spec capsman_registration_table(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec capsman_registration_table(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def capsman_registration_table(auth, ip, opts \\ []) do
     get(auth, ip, "/caps-man/registration-table", opts)
   end
@@ -855,7 +1013,8 @@ defmodule MikrotikApi do
   @doc """
   GET /caps-man/security
   """
-  @spec capsman_security_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec capsman_security_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def capsman_security_list(auth, ip, opts \\ []) do
     get(auth, ip, "/caps-man/security", opts)
   end
@@ -863,7 +1022,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/wifi
   """
-  @spec wifi_interface_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_interface_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_interface_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/wifi", opts)
   end
@@ -871,7 +1031,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /interface/wifi/{id}
   """
-  @spec wifi_interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_interface_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/wifi/#{id}", attrs, opts)
   end
@@ -879,7 +1040,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/wifi/ssid
   """
-  @spec wifi_ssid_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_ssid_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_ssid_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/wifi/ssid", opts)
   end
@@ -887,7 +1049,8 @@ defmodule MikrotikApi do
   @doc """
   POST /interface/wifi/ssid
   """
-  @spec wifi_ssid_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_ssid_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_ssid_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/interface/wifi/ssid", attrs, opts)
   end
@@ -895,7 +1058,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /interface/wifi/ssid/{id}
   """
-  @spec wifi_ssid_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_ssid_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_ssid_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/wifi/ssid/#{id}", attrs, opts)
   end
@@ -903,7 +1067,8 @@ defmodule MikrotikApi do
   @doc """
   DELETE /interface/wifi/ssid/{id}
   """
-  @spec wifi_ssid_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_ssid_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_ssid_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/interface/wifi/ssid/#{id}", opts)
   end
@@ -911,7 +1076,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/wifi/security
   """
-  @spec wifi_security_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_security_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_security_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/wifi/security", opts)
   end
@@ -919,7 +1085,8 @@ defmodule MikrotikApi do
   @doc """
   POST /interface/wifi/security
   """
-  @spec wifi_security_add(Auth.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_security_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_security_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     post(auth, ip, "/interface/wifi/security", attrs, opts)
   end
@@ -927,7 +1094,8 @@ defmodule MikrotikApi do
   @doc """
   PATCH /interface/wifi/security/{id}
   """
-  @spec wifi_security_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_security_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_security_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
     patch(auth, ip, "/interface/wifi/security/#{id}", attrs, opts)
   end
@@ -935,9 +1103,52 @@ defmodule MikrotikApi do
   @doc """
   DELETE /interface/wifi/security/{id}
   """
-  @spec wifi_security_delete(Auth.t(), String.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wifi_security_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wifi_security_delete(auth, ip, id, opts \\ []) when is_binary(id) do
     delete(auth, ip, "/interface/wifi/security/#{id}", opts)
+  end
+
+  # -- multi (concurrent batch) --
+
+  @doc """
+  Execute the same REST call concurrently across multiple IPs.
+
+  - ips: list of target IPs (IPv4/IPv6 as strings)
+  - method: :get | :post | :put | :patch | :delete
+  - path: string path under /rest (e.g., "/system/resource")
+  - opts: keyword options accepted by call/5 (e.g., scheme:, decode:, params:, headers:, body: for write methods)
+  - stream_opts:
+    - :max_concurrency (default System.schedulers_online())
+    - :timeout (default 15_000 ms)
+
+  Returns a list in input order: [%{ip: ip, result: {:ok, value} | {:error, %MikrotikApi.Error{}}}]
+  """
+  @spec multi(Auth.t(), [String.t()], method(), String.t(), Keyword.t(), Keyword.t()) :: [
+          %{ip: String.t(), result: {:ok, any() | nil} | {:error, Error.t()}}
+        ]
+  def multi(%Auth{} = auth, ips, method, path, opts \\ [], stream_opts \\ []) when is_list(ips) do
+    max_conc = Keyword.get(stream_opts, :max_concurrency, System.schedulers_online())
+    timeout = Keyword.get(stream_opts, :timeout, 15_000)
+
+    owner = self()
+
+    ips
+    |> Task.async_stream(
+      fn ip ->
+        {ip, call(auth, ip, method, path, Keyword.put(opts, :owner_pid, owner))}
+      end,
+      max_concurrency: max_conc,
+      timeout: timeout,
+      ordered: true
+    )
+    |> Enum.map(fn
+      {:ok, {ip, res}} ->
+        %{ip: ip, result: res}
+
+      {:exit, reason} ->
+        %{ip: nil, result: {:error, %Error{status: nil, reason: :task_exit, details: reason}}}
+    end)
   end
 
   # -- probe helpers --
@@ -963,13 +1174,19 @@ defmodule MikrotikApi do
      %{
        system:
          case sys do
-           {:ok, m} when is_map(m) -> {:ok, %{\
-             "board-name" => Map.get(m, "board-name"),
-             "version" => Map.get(m, "version"),
-             "platform" => Map.get(m, "platform")
-           }}
-           {:ok, other} -> {:ok, other}
-           {:error, %Error{} = e} -> error_summary(e)
+           {:ok, m} when is_map(m) ->
+             {:ok,
+              %{
+                "board-name" => Map.get(m, "board-name"),
+                "version" => Map.get(m, "version"),
+                "platform" => Map.get(m, "platform")
+              }}
+
+           {:ok, other} ->
+             {:ok, other}
+
+           {:error, %Error{} = e} ->
+             error_summary(e)
          end,
        counts: %{
          interfaces: list_count(ifs),
@@ -984,7 +1201,8 @@ defmodule MikrotikApi do
   defp list_count({:ok, _}), do: nil
   defp list_count({:error, _}), do: nil
 
-  defp error_summary(%Error{status: code, reason: reason}), do: {:error, %{status_code: code, reason: reason}}
+  defp error_summary(%Error{status: code, reason: reason}),
+    do: {:error, %{status_code: code, reason: reason}}
 
   @doc """
   Probe wireless (legacy) and wifi (wifiwave2) endpoint availability and summarize.
@@ -1045,6 +1263,7 @@ defmodule MikrotikApi do
   end
 
   defp encode_query(%{} = params) when map_size(params) == 0, do: ""
+
   defp encode_query(%{} = params) do
     encoded =
       params
@@ -1073,7 +1292,7 @@ defmodule MikrotikApi do
         json =
           case body_term do
             nil -> "null"
-            _ -> MikrotikApi.JSON.encode!(body_term)
+            _ -> JSON.encode!(body_term)
           end
 
         {headers_with_ct(headers), to_charlist(json)}
@@ -1094,9 +1313,12 @@ defmodule MikrotikApi do
   defp httpc_options(%Auth{} = auth) do
     base_ssl =
       case auth.verify do
-        :verify_none -> [verify: :verify_none]
+        :verify_none ->
+          [verify: :verify_none]
+
         _ ->
           cacerts = default_cacerts()
+
           if has_user_cacert_option?(auth.ssl_opts) do
             [verify: :verify_peer]
           else
@@ -1113,15 +1335,19 @@ defmodule MikrotikApi do
     ]
   end
 
-  defp handle_response(status, body, _opts) when status in 200..299 and (body == "" or status == 204) do
+  defp handle_response(status, body, _opts)
+       when status in 200..299 and (body == "" or status == 204) do
     {:ok, nil}
   end
 
   defp handle_response(status, body, opts) when status in 200..299 do
     if Keyword.get(opts, :decode, true) do
-      case MikrotikApi.JSON.decode(body) do
-        {:ok, data} -> {:ok, data}
-        {:error, reason} -> {:error, %Error{status: status, reason: :decode_error, details: reason}}
+      case JSON.decode(body) do
+        {:ok, data} ->
+          {:ok, data}
+
+        {:error, reason} ->
+          {:error, %Error{status: status, reason: :decode_error, details: reason}}
       end
     else
       {:ok, body}

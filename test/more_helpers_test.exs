@@ -22,6 +22,7 @@ defmodule MikrotikApi.MoreHelpersTest do
 
   test "dhcp_lease_list GET /ip/dhcp-server/lease" do
     body = ~s([{".id":"*1","address":"192.168.88.100","mac-address":"AA:BB:CC:DD:EE:FF"}])
+
     MikrotikApi.Transport.Mock.put(fn method, url, _headers, _body, _opts ->
       assert method == :get
       assert to_string(url) == "http://10.0.0.1:80/rest/ip/dhcp-server/lease"
@@ -29,14 +30,20 @@ defmodule MikrotikApi.MoreHelpersTest do
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    assert {:ok, [%{".id" => "*1", "address" => _} | _]} = MikrotikApi.dhcp_lease_list(auth, "10.0.0.1", scheme: :http)
+
+    assert {:ok, [%{".id" => "*1", "address" => _} | _]} =
+             MikrotikApi.dhcp_lease_list(auth, "10.0.0.1", scheme: :http)
   end
 
   test "route_add POST /ip/route" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
       assert method == :post
       assert to_string(url) == "http://10.0.0.1:80/rest/ip/route"
-      assert Enum.any?(headers, fn {k, v} -> to_string(k) == "content-type" and to_string(v) == "application/json" end)
+
+      assert Enum.any?(headers, fn {k, v} ->
+               to_string(k) == "content-type" and to_string(v) == "application/json"
+             end)
+
       assert is_list(body)
       {:ok, {200, [], ""}}
     end)

@@ -92,7 +92,7 @@ Common opts
 - scheme: :http | :https (default from config :mikrotik_api, :default_scheme)
 - params: map for query params
 - headers: list of {binary(), binary()}
-- decode: true | false (default true). When true, responses are decoded via internal JSON; false returns raw body strings.
+- decode: true | false (default true). When true, responses are decoded via Elixir's built-in JSON; false returns raw body strings.
 
 Helper functions (selected)
 - Probe: probe_device/3 — summarize system info and counts for key tables (interfaces, IP addresses, ARP, neighbors)
@@ -181,6 +181,14 @@ auth = MikrotikApi.Auth.new(
 ip = System.get_env("MT_IP")
 {:ok, summary} = MikrotikApi.probe_device(auth, ip, scheme: :http)
 # summary => %{system: {:ok, %{...}}, counts: %{interfaces: n, ip_addresses: n, arp: n, neighbors: n}}
+```
+
+Multi (concurrent) examples
+```elixir
+auth = MikrotikApi.Auth.new(username: System.get_env("MT_USER"), password: System.get_env("MT_PASS"), verify: :verify_none)
+ips = ["192.168.88.1", "192.168.88.2", "192.168.88.3"]
+results = MikrotikApi.multi(auth, ips, :get, "/system/resource", [scheme: :http], max_concurrency: 5, timeout: 10_000)
+# results => [%{ip: "192.168.88.1", result: {:ok, %{...}}}, ...]
 ```
 
 Ensure examples

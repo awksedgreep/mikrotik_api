@@ -16,7 +16,9 @@ defmodule MikrotikApi.ResourceHelpersTest do
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    assert {:ok, "{}"} = MikrotikApi.system_resource(auth, "10.0.0.1", decode: false, scheme: :http)
+
+    assert {:ok, "{}"} =
+             MikrotikApi.system_resource(auth, "10.0.0.1", decode: false, scheme: :http)
   end
 
   test "ip_address_add posts JSON body to /ip/address" do
@@ -24,13 +26,18 @@ defmodule MikrotikApi.ResourceHelpersTest do
       assert method == :post
       assert to_string(url) == "http://10.0.0.1:80/rest/ip/address"
       # content-type header
-      assert Enum.any?(headers, fn {k, v} -> to_string(k) == "content-type" and to_string(v) == "application/json" end)
+      assert Enum.any?(headers, fn {k, v} ->
+               to_string(k) == "content-type" and to_string(v) == "application/json"
+             end)
+
       assert is_list(body)
       {:ok, {200, [], "{\"ok\":true}"}}
     end)
 
     auth = Auth.new(username: "u", password: "p")
     attrs = %{"address" => "192.168.88.2/24", "interface" => "bridge"}
-    assert {:ok, "{\"ok\":true}"} = MikrotikApi.ip_address_add(auth, "10.0.0.1", attrs, decode: false, scheme: :http)
+
+    assert {:ok, "{\"ok\":true}"} =
+             MikrotikApi.ip_address_add(auth, "10.0.0.1", attrs, decode: false, scheme: :http)
   end
 end

@@ -15,14 +15,20 @@ defmodule MikrotikApi.BridgeHelpersTest do
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    assert {:ok, [%{".id" => "*1", "name" => "bridge"} | _]} = MikrotikApi.bridge_list(auth, "10.0.0.1", scheme: :http)
+
+    assert {:ok, [%{".id" => "*1", "name" => "bridge"} | _]} =
+             MikrotikApi.bridge_list(auth, "10.0.0.1", scheme: :http)
   end
 
   test "bridge_port_add POST /interface/bridge/port" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
       assert method == :post
       assert to_string(url) == "http://10.0.0.1:80/rest/interface/bridge/port"
-      assert Enum.any?(headers, fn {k, v} -> to_string(k) == "content-type" and to_string(v) == "application/json" end)
+
+      assert Enum.any?(headers, fn {k, v} ->
+               to_string(k) == "content-type" and to_string(v) == "application/json"
+             end)
+
       assert is_list(body)
       {:ok, {200, [], ""}}
     end)
@@ -41,11 +47,21 @@ defmodule MikrotikApi.BridgeHelpersTest do
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    attrs = %{"vlan-ids" => "10", "bridge" => "bridge", "tagged" => "sfp-sfpplus1,ether1", "untagged" => "ether2"}
-    assert {:ok, nil} = MikrotikApi.bridge_vlan_update(auth, "10.0.0.1", "*1", attrs, scheme: :http)
+
+    attrs = %{
+      "vlan-ids" => "10",
+      "bridge" => "bridge",
+      "tagged" => "sfp-sfpplus1,ether1",
+      "untagged" => "ether2"
+    }
+
+    assert {:ok, nil} =
+             MikrotikApi.bridge_vlan_update(auth, "10.0.0.1", "*1", attrs, scheme: :http)
   end
+
   test "bridge_vlan_ensure creates when missing" do
     Process.put({__MODULE__, :vlan_called}, false)
+
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
       case Process.get({__MODULE__, :vlan_called}) do
         false ->
@@ -53,16 +69,30 @@ defmodule MikrotikApi.BridgeHelpersTest do
           assert method == :get
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/bridge/vlan"
           {:ok, {200, [], ~s([])}}
+
         _ ->
           assert method == :post
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/bridge/vlan"
-          assert Enum.any?(headers, fn {k, v} -> to_string(k) == "content-type" and to_string(v) == "application/json" end)
+
+          assert Enum.any?(headers, fn {k, v} ->
+                   to_string(k) == "content-type" and to_string(v) == "application/json"
+                 end)
+
           assert is_list(body)
           {:ok, {200, [], ""}}
       end
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    assert {:ok, {"bridge", "10"}} = MikrotikApi.bridge_vlan_ensure(auth, "10.0.0.1", "bridge", "10", %{"tagged" => "ether1"}, scheme: :http)
+
+    assert {:ok, {"bridge", "10"}} =
+             MikrotikApi.bridge_vlan_ensure(
+               auth,
+               "10.0.0.1",
+               "bridge",
+               "10",
+               %{"tagged" => "ether1"},
+               scheme: :http
+             )
   end
 end

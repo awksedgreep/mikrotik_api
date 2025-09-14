@@ -17,6 +17,7 @@ defmodule MikrotikApi.WirelessHelpersTest do
     end)
 
     auth = Auth.new(username: "u", password: "p")
+
     assert {:ok, [%{"name" => "wlan1"} | _]} =
              MikrotikApi.wireless_interface_list(auth, "10.0.0.1", scheme: :http)
   end
@@ -25,7 +26,11 @@ defmodule MikrotikApi.WirelessHelpersTest do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
       assert method == :post
       assert to_string(url) == "http://10.0.0.1:80/rest/interface/wifi/ssid"
-      assert Enum.any?(headers, fn {k, v} -> to_string(k) == "content-type" and to_string(v) == "application/json" end)
+
+      assert Enum.any?(headers, fn {k, v} ->
+               to_string(k) == "content-type" and to_string(v) == "application/json"
+             end)
+
       assert is_list(body)
       {:ok, {200, [], ""}}
     end)

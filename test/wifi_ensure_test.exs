@@ -15,7 +15,9 @@ defmodule MikrotikApi.WifiEnsureTest do
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    assert {:ok, "SEC1"} = MikrotikApi.wifi_security_ensure(auth, "10.0.0.1", "SEC1", %{}, scheme: :http)
+
+    assert {:ok, "SEC1"} =
+             MikrotikApi.wifi_security_ensure(auth, "10.0.0.1", "SEC1", %{}, scheme: :http)
   end
 
   test "wifi_ssid_ensure creates when missing" do
@@ -28,16 +30,25 @@ defmodule MikrotikApi.WifiEnsureTest do
           assert method == :get
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/wifi/ssid"
           {:ok, {200, [], ~s([])}}
+
         _ ->
           assert method == :post
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/wifi/ssid"
-          assert Enum.any?(headers, fn {k, v} -> to_string(k) == "content-type" and to_string(v) == "application/json" end)
+
+          assert Enum.any?(headers, fn {k, v} ->
+                   to_string(k) == "content-type" and to_string(v) == "application/json"
+                 end)
+
           assert is_list(body)
           {:ok, {200, [], ""}}
       end
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    assert {:ok, "SSID1"} = MikrotikApi.wifi_ssid_ensure(auth, "10.0.0.1", "SSID1", %{"security" => "SEC1"}, scheme: :http)
+
+    assert {:ok, "SSID1"} =
+             MikrotikApi.wifi_ssid_ensure(auth, "10.0.0.1", "SSID1", %{"security" => "SEC1"},
+               scheme: :http
+             )
   end
 end

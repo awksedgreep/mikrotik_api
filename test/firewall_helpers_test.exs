@@ -26,7 +26,11 @@ defmodule MikrotikApi.FirewallHelpersTest do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
       assert method == :post
       assert to_string(url) == "http://10.0.0.1:80/rest/ip/firewall/filter"
-      assert Enum.any?(headers, fn {k, v} -> to_string(k) == "content-type" and to_string(v) == "application/json" end)
+
+      assert Enum.any?(headers, fn {k, v} ->
+               to_string(k) == "content-type" and to_string(v) == "application/json"
+             end)
+
       assert is_list(body)
       {:ok, {200, [], "{\"ok\":true}"}}
     end)

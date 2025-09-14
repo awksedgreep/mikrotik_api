@@ -1,6 +1,6 @@
 # MikroTik REST API Wrapper — Specification and Plan
 
-This document describes a minimal, pragmatic Elixir wrapper around MikroTik RouterOS REST API. The wrapper emphasizes a stateless design where an Auth struct (credentials/TLS) is established once and passed per call alongside a target IP (IPv4/IPv6), minimal external dependencies, and clear logging via Logger (no IO.puts/IO.inspect). Transport and JSON are implemented internally.
+This document describes a minimal, pragmatic Elixir wrapper around MikroTik RouterOS REST API. The wrapper emphasizes a stateless design where an Auth struct (credentials/TLS) is established once and passed per call alongside a target IP (IPv4/IPv6), minimal external dependencies, and clear logging via Logger (no IO.puts/IO.inspect). Transport via OTP (:httpc/:ssl); JSON via Elixir’s built-in JSON (OTP 27+/Elixir 1.18+).
 
 Reference: MikroTik REST API guide — https://help.mikrotik.com/docs/spaces/ROS/pages/47579162/REST+API
 
@@ -15,7 +15,7 @@ Reference: MikroTik REST API guide — https://help.mikrotik.com/docs/spaces/ROS
 ## 2) Design Principles
 
 - Stateless: HTTP calls are independent; Auth is established once and passed per call alongside a target IP. Do not store credentials with the target.
-- Transport/JSON: Use OTP :httpc/:ssl for HTTP/TLS; JSON encoding/decoding is implemented internally (no external JSON dependency). Default scheme is configurable (:mikrotik_api, :default_scheme).
+- Transport/JSON: Use OTP :httpc/:ssl for HTTP/TLS; JSON is handled by Elixir’s built-in JSON (no external dependency).
 - Ergonomic defaults: sensible timeouts, retry on transient network/5xx errors.
 - Explicitness: simple generic verbs (get/post/put/patch/delete) + a few helper functions for frequent tasks.
 - Logging: Use Logger only; redact secrets; enable debug-level request/response summaries with sizes/status codes (no bodies at info level).
@@ -23,7 +23,7 @@ Reference: MikroTik REST API guide — https://help.mikrotik.com/docs/spaces/ROS
 
 ## 3) Dependencies
 
-- No external JSON dependency; JSON is handled internally.
+- No external JSON dependency; JSON is provided by Elixir’s built-in module.
 - Transport via OTP :httpc/:ssl (add :inets and :ssl to extra_applications).
 
 No runtime configuration required beyond standard Logger settings.

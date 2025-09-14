@@ -20,7 +20,8 @@ defmodule MikrotikApiTest do
 
     auth = Auth.new(username: "u", password: "p")
 
-    assert {:ok, ^raw} = MikrotikApi.get(auth, "10.0.0.1", "/system/resource", decode: false, scheme: :http)
+    assert {:ok, ^raw} =
+             MikrotikApi.get(auth, "10.0.0.1", "/system/resource", decode: false, scheme: :http)
   end
 
   test "IPv6 target is bracketed (http)" do
