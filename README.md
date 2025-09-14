@@ -81,6 +81,49 @@ end
 
 ## API Overview
 
+Telemetry helpers (Phase 1–4)
+- System/operations
+  - system_health/3 — GET /system/health
+  - system_packages/3 — GET /system/package
+  - firewall_connection_list/3 — GET /ip/firewall/connection
+  - dns_config/3 — GET /ip/dns
+  - dns_cache_list/3 — GET /ip/dns/cache
+  - ip_pool_list/3 — GET /ip/pool
+  - firewall_address_list/3 — GET /ip/firewall/address-list
+- IPv6
+  - ipv6_route_list/3 — GET /ipv6/route
+  - ipv6_pool_list/3 — GET /ipv6/pool
+  - ipv6_firewall_filter_list/3 — GET /ipv6/firewall/filter
+  - ipv6_neighbor_list/3 — GET /ipv6/neighbor
+- ipv6_firewall_address_list/3 — GET /ipv6/firewall/address-list
+
+- Wireless/WiFi and CAPsMAN (Phase 3)
+  - wireless_registration_table/3 — GET /interface/wireless/registration-table
+  - wireless_interface_list/3, wireless_interface_add/4, wireless_interface_update/5, wireless_interface_delete/4, wireless_interface_ensure/5
+  - wireless_security_profile_list/3, wireless_security_profile_add/4, wireless_security_profile_update/5, wireless_security_profile_delete/4, wireless_security_profile_ensure/5
+  - wifi_interface_list/3, wifi_interface_update/5
+  - wifi_ssid_list/3, wifi_ssid_add/4, wifi_ssid_update/5, wifi_ssid_delete/4, wifi_ssid_ensure/5
+  - wifi_security_list/3, wifi_security_add/4, wifi_security_update/5, wifi_security_delete/4, wifi_security_ensure/5
+  - capsman_interface_list/3, capsman_registration_table/3, capsman_security_list/3, capsman_security_add/4, capsman_security_ensure/5, capsman_provisioning_list/3, capsman_provisioning_add/4, capsman_provisioning_ensure/4
+
+- Extended telemetry (Phase 4)
+  - ethernet_poe_list/3 — GET /interface/ethernet/poe
+  - interface_ethernet_monitor/4 — GET /interface/ethernet/monitor/{ident}
+  - tool_netwatch_list/3 — GET /tool/netwatch
+  - ip_cloud_info/3 — GET /ip/cloud
+  - eoip_list/3 — GET /interface/eoip
+  - gre_list/3 — GET /interface/gre
+  - ipip_list/3 — GET /interface/ipip
+  - ethernet_switch_port_list/3 — GET /interface/ethernet/switch/port
+  - user_active_list/3 — GET /user/active
+  - queue_simple_list/3 — GET /queue/simple
+  - queue_tree_list/3 — GET /queue/tree
+  - routing_bfd_list/3 — GET /routing/bfd/session
+  - routing_bgp_list/3 — GET /routing/bgp/session
+  - routing_stats/3 — GET /routing/stats
+  - certificate_list/3 — GET /certificate
+  - container_list/3 — GET /container
+
 Core functions (generic verbs)
 - get(auth, ip, path, opts \\ [])
 - post(auth, ip, path, body \\ nil, opts \\ [])
@@ -181,6 +224,44 @@ auth = MikrotikApi.Auth.new(
 ip = System.get_env("MT_IP")
 {:ok, summary} = MikrotikApi.probe_device(auth, ip, scheme: :http)
 # summary => %{system: {:ok, %{...}}, counts: %{interfaces: n, ip_addresses: n, arp: n, neighbors: n}}
+
+## Batch reads (multi)
+To fetch the same path across multiple devices concurrently, use multi/6.
+
+Example:
+```elixir
+auth = MikrotikApi.Auth.new(username: System.get_env("MT_USER"), password: System.get_env("MT_PASS"), verify: :verify_none)
+ips = ["192.168.88.1", "192.168.88.2"]
+results = MikrotikApi.multi(auth, ips, :get, "/system/resource", [scheme: :http], max_concurrency: 5, timeout: 10_000)
+# [%{ip: "192.168.88.1", result: {:ok, %{...}}}, ...]
+```
+
+## Developer guardrails
+To prevent regressions, run:
+
+```bash
+mix guardrails
+```
+This task scans for disallowed patterns (IO.puts/IO.inspect and the legacy MikrotikApi.JSON).
+
+## Normalization helpers (optional)
+The library includes optional utilities for exporters to normalize string fields commonly found in RouterOS responses.
+
+Examples:
+```elixir
+# Normalize wireless registration-table entries (legacy wireless)
+{:ok, regs} = MikrotikApi.wireless_registration_table(auth, ip, scheme: :http)
+normalized =
+  Enum.map(regs, fn e ->
+    e
+    |> Map.update("rx-signal", nil, &MikrotikApi.Normalize.to_int/1)
+    |> Map.update("tx-rate", nil, &MikrotikApi.Normalize.parse_rate_mbps/1)
+    |> Map.update("rx-rate", nil, &MikrotikApi.Normalize.parse_rate_mbps/1)
+  end)
+
+# Normalize booleans
+val = MikrotikApi.Normalize.normalize_bool("enabled") # => true
+```
 ```
 
 Multi (concurrent) examples

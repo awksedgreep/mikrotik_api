@@ -1151,6 +1151,260 @@ defmodule MikrotikApi do
     end)
   end
 
+  # -- telemetry helpers (Phase 1: operations essentials) --
+
+  @doc """
+  GET /system/health
+  """
+  @spec system_health(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def system_health(auth, ip, opts \\ []) do
+    get(auth, ip, "/system/health", opts)
+  end
+
+  @doc """
+  GET /system/package
+  """
+  @spec system_packages(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def system_packages(auth, ip, opts \\ []) do
+    get(auth, ip, "/system/package", opts)
+  end
+
+  @doc """
+  GET /ip/firewall/connection
+  """
+  @spec firewall_connection_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def firewall_connection_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/firewall/connection", opts)
+  end
+
+  @doc """
+  GET /ip/dns (config/stats)
+  """
+  @spec dns_config(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def dns_config(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/dns", opts)
+  end
+
+  @doc """
+  GET /ip/dns/cache
+  """
+  @spec dns_cache_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_cache_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/dns/cache", opts)
+  end
+
+  @doc """
+  GET /ip/pool
+  """
+  @spec ip_pool_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ip_pool_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/pool", opts)
+  end
+
+  @doc """
+  GET /ip/firewall/address-list
+  """
+  @spec firewall_address_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def firewall_address_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/firewall/address-list", opts)
+  end
+
+  # -- IPv6 parity helpers (Phase 2) --
+
+  @doc """
+  GET /ipv6/route
+  """
+  @spec ipv6_route_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ipv6_route_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ipv6/route", opts)
+  end
+
+  @doc """
+  GET /ipv6/pool
+  """
+  @spec ipv6_pool_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ipv6_pool_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ipv6/pool", opts)
+  end
+
+  @doc """
+  GET /ipv6/firewall/filter
+  """
+  @spec ipv6_firewall_filter_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ipv6_firewall_filter_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ipv6/firewall/filter", opts)
+  end
+
+  @doc """
+  GET /ipv6/neighbor
+  """
+  @spec ipv6_neighbor_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ipv6_neighbor_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ipv6/neighbor", opts)
+  end
+
+  @doc """
+  GET /ipv6/firewall/address-list
+  """
+  @spec ipv6_firewall_address_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ipv6_firewall_address_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ipv6/firewall/address-list", opts)
+  end
+
+  # -- extended telemetry helpers (Phase 4) --
+
+  @doc """
+  GET /interface/ethernet/poe
+  """
+  @spec ethernet_poe_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ethernet_poe_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/ethernet/poe", opts)
+  end
+
+  @doc """
+  GET /interface/ethernet/monitor/{ident}
+  """
+  @spec interface_ethernet_monitor(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def interface_ethernet_monitor(auth, ip, ident, opts \\ []) when is_binary(ident) do
+    get(auth, ip, "/interface/ethernet/monitor/#{ident}", opts)
+  end
+
+  @doc """
+  GET /tool/netwatch
+  """
+  @spec tool_netwatch_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def tool_netwatch_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/tool/netwatch", opts)
+  end
+
+  @doc """
+  GET /ip/cloud
+  """
+  @spec ip_cloud_info(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ip_cloud_info(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/cloud", opts)
+  end
+
+  @doc """
+  GET /interface/eoip
+  """
+  @spec eoip_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def eoip_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/eoip", opts)
+  end
+
+  @doc """
+  GET /interface/gre
+  """
+  @spec gre_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def gre_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/gre", opts)
+  end
+
+  @doc """
+  GET /interface/ipip
+  """
+  @spec ipip_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def ipip_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/ipip", opts)
+  end
+
+  @doc """
+  GET /interface/ethernet/switch/port
+  """
+  @spec ethernet_switch_port_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def ethernet_switch_port_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/ethernet/switch/port", opts)
+  end
+
+  @doc """
+  GET /user/active
+  """
+  @spec user_active_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def user_active_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/user/active", opts)
+  end
+
+  @doc """
+  GET /queue/simple
+  """
+  @spec queue_simple_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def queue_simple_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/queue/simple", opts)
+  end
+
+  @doc """
+  GET /queue/tree
+  """
+  @spec queue_tree_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def queue_tree_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/queue/tree", opts)
+  end
+
+  @doc """
+  GET /routing/bfd/session
+  """
+  @spec routing_bfd_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def routing_bfd_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/routing/bfd/session", opts)
+  end
+
+  @doc """
+  GET /routing/bgp/session
+  """
+  @spec routing_bgp_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def routing_bgp_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/routing/bgp/session", opts)
+  end
+
+  @doc """
+  GET /routing/stats
+  """
+  @spec routing_stats(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def routing_stats(auth, ip, opts \\ []) do
+    get(auth, ip, "/routing/stats", opts)
+  end
+
+  @doc """
+  GET /certificate
+  """
+  @spec certificate_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def certificate_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/certificate", opts)
+  end
+
+  @doc """
+  GET /container
+  """
+  @spec container_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def container_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/container", opts)
+  end
+
   # -- probe helpers --
 
   @doc """
