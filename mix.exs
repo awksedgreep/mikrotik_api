@@ -4,10 +4,32 @@ defmodule MikrotikApi.MixProject do
   def project do
     [
       app: :mikrotik_api,
-      version: "0.2.0",
+      version: "0.3.0",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      package: [
+        description: "Elixir client for MikroTik RouterOS API.",
+        licenses: ["MIT"],
+        links: %{"GitHub" => "https://github.com/mcotner/mikrotik_api"}
+      ],
+      source_url: "https://github.com/awksedgreep/mikrotik_api",
+      docs: [
+        main: "readme",
+        extras: [
+          "README.md",
+          "rest_api.md",
+          "livebook/01_quickstart.livemd",
+          "livebook/02_auth_and_tls.livemd",
+          "livebook/03_crud_basics.livemd",
+          "livebook/04_ensure_workflows.livemd",
+          "livebook/05_multi_and_probe.livemd"
+        ],
+        groups_for_extras: [
+          Livebooks: ~r{^livebook/}
+        ],
+        source_ref: "v0.3.0"
+      ]
     ]
   end
 
@@ -21,8 +43,7 @@ defmodule MikrotikApi.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 end

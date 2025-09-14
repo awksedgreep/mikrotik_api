@@ -1,0 +1,58 @@
+# CRUD Basics — IP Addresses
+
+This notebook demonstrates listing, adding, updating, and deleting IP addresses.
+
+## Install
+
+```elixir
+Mix.install([
+  {:mikrotik_api, path: ".."}
+])
+```
+
+## Setup
+
+```elixir
+alias MikrotikApi.Auth
+require Logger
+
+auth = Auth.new(
+  username: System.get_env("MT_USER"),
+  password: System.get_env("MT_PASS"),
+  verify: :verify_none
+)
+
+ip = System.get_env("MT_IP") || "192.0.2.1"
+```
+
+## List addresses
+
+```elixir
+case MikrotikApi.ip_address_list(auth, ip, scheme: :http) do
+  {:ok, addrs} -> Logger.info("listed addresses: #{length(addrs)}")
+  {:error, err} -> Logger.error("list failed: #{inspect(err)}")
+end
+```
+
+## Ensure address exists
+
+```elixir
+attrs = %{"address" => "192.168.88.2/24", "interface" => "bridge"}
+case MikrotikApi.ip_address_ensure(auth, ip, attrs, scheme: :http) do
+  {:ok, addr} -> Logger.info("address present: #{addr}")
+  {:error, err} -> Logger.error("ensure failed: #{inspect(err)}")
+end
+```
+
+## Update and delete by id
+
+```elixir
+with {:ok, list} <- MikrotikApi.ip_address_list(auth, ip, scheme: :http),
+     [%{".id" => id} | _] <- list do
+  _ = MikrotikApi.ip_address_update(auth, ip, id, %{"disabled" => "no"}, scheme: :http)
+  _ = MikrotikApi.ip_address_delete(auth, ip, id, scheme: :http)
+  :ok
+else
+  _ -> Logger.info("no addresses to update/delete")
+end
+```

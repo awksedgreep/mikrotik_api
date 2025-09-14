@@ -1,0 +1,58 @@
+# Quick Start — MikrotikApi
+
+This Livebook shows how to get started with MikrotikApi: configuring Logger, creating Auth, and making the first GET/POST calls.
+
+> Notes
+> - Do not print secrets. Use environment variables and Logger for output.
+> - Over secure private networks (e.g., WireGuard), you may use HTTP. Prefer HTTPS otherwise.
+
+## Install dependencies
+
+```elixir
+Mix.install([
+  {:mikrotik_api, path: ".."}
+])
+```
+
+## Configure Logger (optional)
+
+```elixir
+require Logger
+Logger.configure(level: :info)
+```
+
+## Prepare Auth and target
+
+Set environment variables before running cells, e.g. in your Livebook secrets or local shell:
+- MT_USER, MT_PASS, MT_IP
+
+```elixir
+alias MikrotikApi.Auth
+
+auth = Auth.new(
+  username: System.get_env("MT_USER"),
+  password: System.get_env("MT_PASS"),
+  verify: :verify_none # for lab/WireGuard. Prefer :verify_peer with HTTPS in production
+)
+
+ip = System.get_env("MT_IP") || "192.0.2.1" # example IP
+```
+
+## GET: /system/resource
+
+```elixir
+case MikrotikApi.get(auth, ip, "/system/resource", scheme: :http) do
+  {:ok, _data} -> Logger.info("system resource ok")
+  {:error, err} -> Logger.error("system resource failed: #{inspect(err)}")
+end
+```
+
+## POST: /ip/address
+
+```elixir
+attrs = %{"address" => "192.168.88.2/24", "interface" => "bridge"}
+case MikrotikApi.post(auth, ip, "/ip/address", attrs, scheme: :http) do
+  {:ok, _created} -> Logger.info("added ip address")
+  {:error, err} -> Logger.error("add ip failed: #{inspect(err)}")
+end
+```

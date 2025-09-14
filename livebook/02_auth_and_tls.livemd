@@ -1,0 +1,57 @@
+# Auth and TLS — verify_peer vs verify_none
+
+This notebook focuses on secure transports. Prefer HTTPS with :verify_peer. Use :verify_none only in controlled lab settings.
+
+## Install
+
+```elixir
+Mix.install([
+  {:mikrotik_api, path: ".."}
+])
+```
+
+## Auth with verify_peer and CA
+
+```elixir
+alias MikrotikApi.Auth
+
+auth_peer = Auth.new(
+  username: System.get_env("MT_USER"),
+  password: System.get_env("MT_PASS"),
+  verify: :verify_peer,
+  ssl_opts: [cacertfile: System.get_env("MT_CACERT")]
+)
+
+ip = System.get_env("MT_IP") || "192.0.2.1"
+```
+
+```elixir
+require Logger
+case MikrotikApi.system_resource(auth_peer, ip, scheme: :https) do
+  {:ok, _} -> Logger.info("https verify_peer ok")
+  {:error, err} -> Logger.error("https verify_peer failed: #{inspect(err)}")
+end
+```
+
+## Lab mode with verify_none (HTTP or HTTPS)
+
+```elixir
+alias MikrotikApi.Auth
+
+auth_lab = Auth.new(
+  username: System.get_env("MT_USER"),
+  password: System.get_env("MT_PASS"),
+  verify: :verify_none
+)
+
+ip = System.get_env("MT_IP") || "192.0.2.1"
+```
+
+```elixir
+require Logger
+# Over WireGuard or other private network, :http can be acceptable
+case MikrotikApi.get(auth_lab, ip, "/ip/address", scheme: :http) do
+  {:ok, _} -> Logger.info("http ok (lab)")
+  {:error, err} -> Logger.error("http failed: #{inspect(err)}")
+end
+```

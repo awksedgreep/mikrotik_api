@@ -14,21 +14,21 @@ See rest_api.md for the full specification and plan.
 
 ## Installation
 
-Add to your deps (library not yet published to Hex):
+Add to your deps from Hex:
 
 ```elixir
 # mix.exs (in your host application)
 
 def deps do
   [
-    # When published on Hex:
-    {:mikrotik_api, "~> 0.1"}
-
-    # For local development prior to Hex, use a path or VCS dep instead:
-    # {:mikrotik_api, path: "/absolute/path/to/mikrotik_api"}
+    {:mikrotik_api, "~> 0.3"}
   ]
 end
 ```
+
+- Hex package: https://hex.pm/packages/mikrotik_api
+- HexDocs: https://hexdocs.pm/mikrotik_api
+- Livebooks: see files under livebook/ and HexDocs “Livebooks” section
 
 ## Quick Start
 

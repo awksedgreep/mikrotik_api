@@ -1,0 +1,43 @@
+# Multi and Probe — Concurrency and Summaries
+
+Fetch the same endpoint from multiple routers, and run probe helpers.
+
+## Install
+
+```elixir
+Mix.install([
+  {:mikrotik_api, path: ".."}
+])
+```
+
+## Setup
+
+```elixir
+alias MikrotikApi.Auth
+require Logger
+
+auth = Auth.new(
+  username: System.get_env("MT_USER"),
+  password: System.get_env("MT_PASS"),
+  verify: :verify_none
+)
+
+ips = (System.get_env("MT_IPS") || "192.0.2.1,192.0.2.2") |> String.split(",")
+```
+
+## Multi get /system/resource
+
+```elixir
+results = MikrotikApi.multi(auth, ips, :get, "/system/resource", [scheme: :http], max_concurrency: 5, timeout: 10_000)
+Logger.info("multi done: #{length(results)} targets")
+```
+
+## Probe device and wireless
+
+```elixir
+ip = List.first(ips)
+{:ok, dev} = MikrotikApi.probe_device(auth, ip, scheme: :http)
+Logger.info("device summary: #{inspect(dev)}")
+{:ok, wifi} = MikrotikApi.probe_wireless(auth, ip, scheme: :http)
+Logger.info("wireless summary: #{inspect(wifi)}")
+```

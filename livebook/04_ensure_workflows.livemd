@@ -1,0 +1,55 @@
+# Ensure Workflows — Bridges, Routes, WiFi
+
+Idempotent helpers create-or-reuse resources.
+
+## Install
+
+```elixir
+Mix.install([
+  {:mikrotik_api, path: ".."}
+])
+```
+
+## Setup
+
+```elixir
+alias MikrotikApi.Auth
+require Logger
+
+auth = Auth.new(
+  username: System.get_env("MT_USER"),
+  password: System.get_env("MT_PASS"),
+  verify: :verify_none
+)
+
+ip = System.get_env("MT_IP") || "192.0.2.1"
+```
+
+## Route ensure
+
+```elixir
+rule = %{"dst-address" => "10.10.0.0/16", "gateway" => "192.168.88.1"}
+case MikrotikApi.route_ensure(auth, ip, rule, scheme: :http) do
+  {:ok, m} -> Logger.info("route present: #{inspect(m)}")
+  {:error, err} -> Logger.error("route ensure failed: #{inspect(err)}")
+end
+```
+
+## Bridge and port/VLAN ensure
+
+```elixir
+{:ok, _} = MikrotikApi.bridge_ensure(auth, ip, "bridgeLocal", %{}, scheme: :http)
+{:ok, _} = MikrotikApi.bridge_port_ensure(auth, ip, "bridgeLocal", "ether2", %{}, scheme: :http)
+{:ok, _} = MikrotikApi.bridge_vlan_ensure(auth, ip, "bridgeLocal", "10", %{"tagged" => "sfp-sfpplus1", "untagged" => "ether2"}, scheme: :http)
+```
+
+## WiFi ensure (wifiwave2)
+
+```elixir
+{:ok, _} = MikrotikApi.wifi_security_ensure(auth, ip, "SEC-PSK", %{"wpa2-pre-shared-key" => "supersecret"}, scheme: :http)
+case MikrotikApi.wifi_ssid_ensure(auth, ip, "WG-LAB", %{"security" => "SEC-PSK"}, scheme: :http) do
+  {:ok, _} -> :ok
+  {:error, %MikrotikApi.Error{reason: :wifi_ssid_unavailable}} -> :ok
+  other -> other
+end
+```
