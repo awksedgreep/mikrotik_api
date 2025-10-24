@@ -78,6 +78,7 @@ end
 ## Security Notes
 - Prefer HTTPS (www-ssl) as advised by MikroTik; avoid HTTP except for isolated testing.
 - For self-signed routers in lab environments, you may set verify: :verify_none, but understand the risks.
+- Private keys: The library never logs private-key values. Some devices may not return private-key via REST after creation; in that case the pair workflow returns {:error, %MikrotikApi.Error{reason: :wireguard_private_key_unreadable}}. As a fallback, consider supplying a known private key or generating one client-side in a future step.
 
 ## API Overview
 
@@ -123,6 +124,14 @@ Telemetry helpers (Phase 1–4)
   - routing_stats/3 — GET /routing/stats
   - certificate_list/3 — GET /certificate
   - container_list/3 — GET /container
+
+- WireGuard
+  - wireguard_interface_list/3 — GET /interface/wireguard
+  - wireguard_interface_add/4 — POST /interface/wireguard
+  - wireguard_interface_update/5 — PATCH /interface/wireguard/{id}
+  - wireguard_interface_delete/4 — DELETE /interface/wireguard/{id}
+  - wireguard_interface_ensure/5 — ensure by name, patch only diffs
+  - ensure_wireguard_pair/7 — sequential workflow to create on router A, read private-key, and apply same private-key on router B (for VRRP HA)
 
 Core functions (generic verbs)
 - get(auth, ip, path, opts \\ [])
@@ -299,6 +308,34 @@ rule = %{"chain" => "forward", "action" => "accept", "comment" => "allow"}
 # Firewall NAT ensure (default match by chain+action)
 nat_rule = %{"chain" => "dstnat", "action" => "dst-nat", "to-addresses" => "192.168.88.2"}
 {:ok, _} = MikrotikApi.firewall_nat_ensure(auth, ip, nat_rule, scheme: :http)
+```
+
+WireGuard ensure and pair workflow
+```elixir
+# Ensure a WireGuard interface by name on a single router
+{:ok, %{name: "wgA"}} = MikrotikApi.wireguard_interface_ensure(
+  auth,
+  ip_a,
+  "wgA",
+  %{"listen-port" => "51820"},
+  scheme: :http
+)
+
+# Create a pair in a VRRP cluster: create on A, read private-key, apply same key on B
+case MikrotikApi.ensure_wireguard_pair(
+       auth,
+       ip_a,
+       "wgA",
+       ip_b,
+       "wgB",
+       %{"listen-port" => "51820"},
+       scheme: :http
+     ) do
+  {:ok, %{a: _res_a, b: _res_b}} -> Logger.info("wireguard pair ensured")
+  {:error, %MikrotikApi.Error{reason: :wireguard_private_key_unreadable}} ->
+    Logger.warn("RouterOS REST did not return private-key; provide or generate one as a fallback")
+  other -> Logger.error("pair setup failed: #{inspect(other)}")
+end
 ```
 
 WiFi ensure workflow (wifiwave2)

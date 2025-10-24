@@ -1109,6 +1109,413 @@ defmodule MikrotikApi do
     delete(auth, ip, "/interface/wifi/security/#{id}", opts)
   end
 
+  # WireGuard interfaces
+
+  @doc """
+  GET /interface/wireguard
+  """
+  @spec wireguard_interface_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_interface_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wireguard", opts)
+  end
+
+  @doc """
+  POST /interface/wireguard/getall with a .proplist to retrieve fields like private-key and public-key.
+  """
+  @spec wireguard_interface_getall(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, [map()]} | {:error, Error.t()}
+  def wireguard_interface_getall(auth, ip, proplist \\ "name,private-key,public-key", opts \\ []) do
+    body = %{".proplist" => proplist}
+    post(auth, ip, "/interface/wireguard/getall", body, opts)
+  end
+
+  @doc """
+  POST /interface/wireguard
+  """
+  @spec wireguard_interface_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_interface_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    case post(auth, ip, "/interface/wireguard", attrs, opts) do
+      {:ok, _} = ok -> ok
+      {:error, %Error{status: 400, details: det}} = err ->
+        if is_binary(det) and String.contains?(det, "no such command") do
+          post(auth, ip, "/interface/wireguard/add", attrs, opts)
+        else
+          err
+        end
+      other -> other
+    end
+  end
+
+  @doc """
+  PATCH /interface/wireguard/{id}
+  """
+  @spec wireguard_interface_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_interface_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/wireguard/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/wireguard/{id}
+  """
+  @spec wireguard_interface_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_interface_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/wireguard/#{id}", opts)
+  end
+
+  # WireGuard peers
+
+  @doc """
+  GET /interface/wireguard/peers
+  """
+  @spec wireguard_peer_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_peer_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/interface/wireguard/peers", opts)
+  end
+
+  @doc """
+  POST /interface/wireguard/peers (fallback to /add)
+  """
+  @spec wireguard_peer_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_peer_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    case post(auth, ip, "/interface/wireguard/peers", attrs, opts) do
+      {:ok, _} = ok -> ok
+      {:error, %Error{status: 400, details: det}} = err ->
+        if is_binary(det) and String.contains?(det, "no such command") do
+          post(auth, ip, "/interface/wireguard/peers/add", attrs, opts)
+        else
+          err
+        end
+      other -> other
+    end
+  end
+
+  @doc """
+  PATCH /interface/wireguard/peers/{id}
+  """
+  @spec wireguard_peer_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_peer_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/wireguard/peers/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/wireguard/peers/{id}
+  """
+  @spec wireguard_peer_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def wireguard_peer_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/wireguard/peers/#{id}", opts)
+  end
+
+  @doc """
+  Ensure a WireGuard peer identified by {interface, public-key} exists with desired attributes.
+  Only differing keys are patched.
+  Returns {:ok, %{id: id | public-key, interface: name, changed: [keys]}}.
+  """
+  @spec wireguard_peer_ensure(Auth.t(), String.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, %{id: String.t() | nil, interface: String.t(), changed: [String.t()]}} | {:error, term()}
+  def wireguard_peer_ensure(auth, ip, interface, public_key, attrs \\ %{}, opts \\ [])
+      when is_binary(interface) and is_binary(public_key) and is_map(attrs) do
+    with {:ok, list} <- wireguard_peer_list(auth, ip, opts) do
+      entry = Enum.find(list || [], fn e -> e["interface"] == interface and e["public-key"] == public_key end)
+
+      case entry do
+        nil ->
+          merged = attrs |> Map.put("interface", interface) |> Map.put("public-key", public_key)
+
+          case wireguard_peer_add(auth, ip, merged, opts) do
+            {:ok, _} ->
+              {:ok, %{id: public_key, interface: interface, changed: Enum.map(Map.keys(merged), &to_string/1)}}
+
+            {:error, _} = err ->
+              err
+          end
+
+        %{".id" => id} = existing ->
+          changed_map =
+            attrs
+            |> Enum.reduce(%{}, fn {k, v}, acc ->
+              existing_v = Map.get(existing, k)
+              if existing_v == v, do: acc, else: Map.put(acc, k, v)
+            end)
+
+          case Map.keys(changed_map) do
+            [] -> {:ok, %{id: id, interface: interface, changed: []}}
+            keys ->
+              case wireguard_peer_update(auth, ip, id, changed_map, opts) do
+                {:ok, _} -> {:ok, %{id: id, interface: interface, changed: Enum.map(keys, &to_string/1)}}
+                {:error, _} = err -> err
+              end
+          end
+      end
+    end
+  end
+
+  @doc """
+  Ensure a WireGuard interface by name. If present, patches only differing keys.
+  Returns {:ok, %{id: id | name, name: name, changed: [keys]}} when up-to-date or updated; {:error, not_found} if list fails.
+  Note: On create, the actual .id may not be known immediately; id will fallback to the provided name.
+  """
+  @spec wireguard_interface_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, %{id: String.t(), name: String.t(), changed: [String.t()]}} | {:error, term()}
+  def wireguard_interface_ensure(auth, ip, ident, attrs \\ %{}, opts \\ [])
+      when is_binary(ident) and is_map(attrs) do
+    with {:ok, list} <- wireguard_interface_list(auth, ip, opts) do
+      case Enum.find(list, fn e -> e[".id"] == ident or e["name"] == ident end) do
+        nil ->
+          merged = Map.put(attrs, "name", ident)
+
+          case wireguard_interface_add(auth, ip, merged, opts) do
+            {:ok, _} ->
+              {:ok, %{id: ident, name: ident, changed: Enum.map(Map.keys(merged), &to_string/1)}}
+
+            {:error, _} = err ->
+              err
+          end
+
+        entry ->
+          id = entry[".id"]
+          name = entry["name"]
+
+          changed_map =
+            attrs
+            |> Enum.reduce(%{}, fn {k, v}, acc ->
+              existing = Map.get(entry, k)
+
+              if existing == v do
+                acc
+              else
+                Map.put(acc, k, v)
+              end
+            end)
+
+          changed_keys = Map.keys(changed_map)
+
+          case changed_keys do
+            [] ->
+              {:ok, %{id: id, name: name, changed: []}}
+
+            _ ->
+              case wireguard_interface_update(auth, ip, id, changed_map, opts) do
+                {:ok, _} ->
+                  {:ok, %{id: id, name: name, changed: Enum.map(changed_keys, &to_string/1)}}
+
+                {:error, _} = err ->
+                  err
+              end
+          end
+      end
+    end
+  end
+
+  @doc """
+  Create a WireGuard interface on router A, then replicate its private key to router B.
+
+  Sequential steps (no concurrency):
+  1) Ensure interface on A with provided attrs (RouterOS may generate private-key).
+  2) Read back interface list on A; locate the entry by name and extract "private-key".
+     - If not present, returns {:error, %MikrotikApi.Error{reason: :wireguard_private_key_unreadable}}.
+  3) Ensure interface on B with the same "private-key" plus provided attrs.
+
+  Security: Never logs the private key. The returned value does not include the key.
+  """
+  @spec ensure_wireguard_pair(
+          Auth.t(),
+          String.t(),
+          String.t(),
+          String.t(),
+          String.t(),
+          map(),
+          Keyword.t()
+        ) :: {:ok, %{a: map(), b: map()}} | {:error, Error.t() | term()}
+  def ensure_wireguard_pair(%Auth{} = auth, ip_a, name_a, ip_b, name_b, attrs \\ %{}, opts \\ [])
+      when is_binary(ip_a) and is_binary(name_a) and is_binary(ip_b) and is_binary(name_b) and is_map(attrs) do
+    # Ensure on A without sending private-key to allow RouterOS to auto-generate when creating
+    attrs_a = Map.delete(attrs, "private-key")
+
+    with {:ok, res_a} <- wireguard_interface_ensure(auth, ip_a, name_a, attrs_a, opts),
+         {:ok, list_a} <- wireguard_interface_list(auth, ip_a, opts),
+         entry_a when is_map(entry_a) <-
+           Enum.find(list_a, &(&1["name"] == name_a)) ||
+             {:error,
+              %Error{
+                status: nil,
+                reason: :wireguard_private_key_unreadable,
+                details: "wireguard interface not found after ensure"
+              }},
+         key_or_nil <- Map.get(entry_a, "private-key"),
+         key <- (
+           if is_binary(key_or_nil) do
+             key_or_nil
+           else
+             case wireguard_interface_getall(auth, ip_a, "name,private-key", opts) do
+               {:ok, all} when is_list(all) ->
+                 case Enum.find(all, &(&1["name"] == name_a)) do
+                   %{"private-key" => k} when is_binary(k) -> k
+                   _ -> nil
+                 end
+               _ -> nil
+             end
+           end
+         ),
+         key when is_binary(key) <-
+           key ||
+             {:error,
+              %Error{
+                status: nil,
+                reason: :wireguard_private_key_unreadable,
+                details: "RouterOS REST did not return private-key"
+              }},
+         attrs_b <- Map.put(attrs, "private-key", key),
+         {:ok, res_b} <- wireguard_interface_ensure(auth, ip_b, name_b, attrs_b, opts) do
+      {:ok, %{a: res_a, b: res_b}}
+    else
+      {:error, %Error{} = e} -> {:error, e}
+      {:error, reason} -> {:error, reason}
+      other -> other
+    end
+  end
+
+  @doc """
+  Create a WireGuard interface across a cluster of routers.
+
+  Workflow:
+  - Choose the first router in the list as the primary (key source).
+  - Ensure the interface on the primary WITHOUT sending a private-key (allow RouterOS to auto-generate).
+  - Retrieve the private-key (and public-key) from the primary; falls back to getall if list omits it.
+  - Ensure the interface with the same private-key on all other routers concurrently.
+
+  Returns {:ok, %{primary: %{ip: ip, result: map()}, members: [%{ip: ip, result: {:ok, map()} | {:error, %MikrotikApi.Error{}}}], public_key: String.t()}} on success.
+  """
+  @spec wireguard_cluster_add(Auth.t(), [String.t()], String.t(), map(), Keyword.t()) ::
+          {:ok,
+           %{
+             primary: %{ip: String.t(), result: map()},
+             members: [%{ip: String.t(), result: {:ok, map()} | {:error, Error.t()}}],
+             public_key: String.t()
+           }}
+          | {:error, Error.t() | term()}
+  def wireguard_cluster_add(%Auth{} = auth, [primary_ip | rest_ips] = ips, name, attrs \\ %{}, opts \\ [])
+      when is_list(ips) and is_binary(name) and is_map(attrs) do
+    attrs_primary = Map.delete(attrs, "private-key")
+
+    with {:ok, res_primary} <- wireguard_interface_ensure(auth, primary_ip, name, attrs_primary, opts),
+         {:ok, list_primary} <- wireguard_interface_list(auth, primary_ip, opts),
+         entry when is_map(entry) <-
+           Enum.find(list_primary, &(&1["name"] == name)) ||
+             {:error,
+              %Error{
+                status: nil,
+                reason: :wireguard_private_key_unreadable,
+                details: "wireguard interface not found on primary after ensure"
+              }},
+         key_or_nil <- Map.get(entry, "private-key"),
+         key <- (
+           if is_binary(key_or_nil) do
+             key_or_nil
+           else
+             case wireguard_interface_getall(auth, primary_ip, "name,private-key,public-key", opts) do
+               {:ok, all} when is_list(all) ->
+                 case Enum.find(all, &(&1["name"] == name)) do
+                   %{"private-key" => k} when is_binary(k) -> k
+                   _ -> nil
+                 end
+               _ -> nil
+             end
+           end
+         ),
+         key when is_binary(key) <-
+           key ||
+             {:error,
+              %Error{
+                status: nil,
+                reason: :wireguard_private_key_unreadable,
+                details: "RouterOS REST did not return private-key on primary"
+              }},
+         pub <- (
+           case wireguard_interface_getall(auth, primary_ip, "name,public-key", opts) do
+             {:ok, all} when is_list(all) ->
+               case Enum.find(all, &(&1["name"] == name)) do
+                 %{"public-key" => pk} when is_binary(pk) -> pk
+                 _ -> nil
+               end
+             _ -> nil
+           end
+         ) do
+      attrs_members = Map.put(attrs, "private-key", key)
+
+      members =
+        rest_ips
+        |> Task.async_stream(
+          fn ip ->
+            {ip, wireguard_interface_ensure(auth, ip, name, attrs_members, opts)}
+          end,
+          max_concurrency: Keyword.get(opts, :max_concurrency, System.schedulers_online()),
+          timeout: Keyword.get(opts, :timeout, 15_000),
+          ordered: true
+        )
+        |> Enum.map(fn
+          {:ok, {ip, result}} -> %{ip: ip, result: result}
+          {:exit, reason} -> %{ip: nil, result: {:error, %Error{status: nil, reason: :task_exit, details: reason}}}
+        end)
+
+      {:ok, %{primary: %{ip: primary_ip, result: res_primary}, members: members, public_key: pub}}
+    else
+      {:error, %Error{} = e} -> {:error, e}
+      {:error, reason} -> {:error, reason}
+      other -> other
+    end
+  end
+
+  @doc """
+  Add or update WireGuard peers across a cluster on an existing interface.
+
+  - ips: list of router IPs (all members to apply peers to)
+  - name: wireguard interface name (e.g., "wg0"); will be set on each peer attrs
+  - peers: list of peer maps, each requiring at least "public-key"; optional keys include
+    "allowed-address", "endpoint-address", "endpoint-port", "persistent-keepalive", etc.
+
+  Returns {:ok, [%{ip: ip, results: [result_per_peer]}]}.
+  """
+  @spec wireguard_cluster_add_peers(Auth.t(), [String.t()], String.t(), [map()], Keyword.t()) ::
+          {:ok, [%{ip: String.t(), results: [{:ok, map()} | {:error, Error.t() | term()}]}]} | {:error, term()}
+  def wireguard_cluster_add_peers(%Auth{} = auth, ips, name, peers, opts \\ [])
+      when is_list(ips) and is_binary(name) and is_list(peers) do
+    results =
+      ips
+      |> Task.async_stream(
+        fn ip ->
+          peer_results =
+            Enum.map(peers, fn peer ->
+              case Map.fetch(peer, "public-key") do
+                {:ok, pk} when is_binary(pk) ->
+                  attrs = peer |> Map.put("interface", name) |> Map.delete("public-key")
+                  wireguard_peer_ensure(auth, ip, name, pk, attrs, opts)
+
+                _ ->
+                  {:error, %Error{status: nil, reason: :invalid_argument, details: "peer missing public-key"}}
+              end
+            end)
+
+          %{ip: ip, results: peer_results}
+        end,
+        max_concurrency: Keyword.get(opts, :max_concurrency, System.schedulers_online()),
+        timeout: Keyword.get(opts, :timeout, 15_000),
+        ordered: true
+      )
+      |> Enum.map(fn
+        {:ok, res} -> res
+        {:exit, reason} -> %{ip: nil, results: [{:error, %Error{status: nil, reason: :task_exit, details: reason}}]}
+      end)
+
+    {:ok, results}
+  end
+
   # -- multi (concurrent batch) --
 
   @doc """
