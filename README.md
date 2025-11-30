@@ -113,7 +113,7 @@ Telemetry helpers (Phase 1–4)
   - tool_netwatch_list/3 — GET /tool/netwatch
   - ip_cloud_info/3 — GET /ip/cloud
   - eoip_list/3 — GET /interface/eoip
-  - gre_list/3 — GET /interface/gre
+  - gre_list/3 — GET /interface/gre; gre_add/4; gre_update/5; gre_delete/4; gre_ensure/5
   - ipip_list/3 — GET /interface/ipip
   - ethernet_switch_port_list/3 — GET /interface/ethernet/switch/port
   - user_active_list/3 — GET /user/active

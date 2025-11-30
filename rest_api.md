@@ -84,6 +84,12 @@ Path is appended to "/rest"; caller supplies endpoint like "/system/resource" or
   - firewall_filter_list(auth, target) => GET /ip/firewall/filter
   - firewall_filter_add(auth, target, rule) => POST /ip/firewall/filter
   - firewall_filter_delete(auth, target, id) => DELETE /ip/firewall/filter/{id}
+- Tunnels
+  - gre_list(auth, target) => GET /interface/gre
+  - gre_add(auth, target, attrs) => POST /interface/gre (fallback to /add)
+  - gre_update(auth, target, id, attrs) => PATCH /interface/gre/{id}
+  - gre_delete(auth, target, id) => DELETE /interface/gre/{id}
+  - gre_ensure(auth, target, name, attrs) — ensure by name, patch only diffs
 
 Note: IDs provided by RouterOS are often in ".id" fields; helpers accept either the string id or a resource map with ".id".
 

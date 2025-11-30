@@ -17,6 +17,7 @@ defmodule MikrotikApi.WireguardPairWorkflowTest do
 
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
       state = Process.get({__MODULE__, :state})
+
       path =
         url
         |> to_string()
@@ -32,6 +33,7 @@ defmodule MikrotikApi.WireguardPairWorkflowTest do
           assert Enum.any?(headers, fn {k, v} ->
                    to_string(k) == "content-type" and to_string(v) == "application/json"
                  end)
+
           assert is_list(body)
           Process.put({__MODULE__, :state}, :second_get_a)
           {:ok, {200, [], ""}}
@@ -79,6 +81,7 @@ defmodule MikrotikApi.WireguardPairWorkflowTest do
 
     MikrotikApi.Transport.Mock.put(fn method, url, _headers, body, _opts ->
       state = Process.get({__MODULE__, :state})
+
       path =
         url
         |> to_string()

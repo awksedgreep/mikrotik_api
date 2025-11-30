@@ -35,7 +35,9 @@ defmodule MikrotikApi.WireguardHelpersTest do
 
     auth = Auth.new(username: "u", password: "p")
     attrs = %{"name" => "wg0", "listen-port" => "51820"}
-    assert {:ok, nil} = MikrotikApi.wireguard_interface_add(auth, "10.0.0.1", attrs, scheme: :http)
+
+    assert {:ok, nil} =
+             MikrotikApi.wireguard_interface_add(auth, "10.0.0.1", attrs, scheme: :http)
   end
 
   test "wireguard_interface_update PATCH /interface/wireguard/{id}" do
@@ -49,7 +51,9 @@ defmodule MikrotikApi.WireguardHelpersTest do
     auth = Auth.new(username: "u", password: "p")
 
     attrs = %{"listen-port" => "51821"}
-    assert {:ok, nil} = MikrotikApi.wireguard_interface_update(auth, "10.0.0.1", "*1", attrs, scheme: :http)
+
+    assert {:ok, nil} =
+             MikrotikApi.wireguard_interface_update(auth, "10.0.0.1", "*1", attrs, scheme: :http)
   end
 
   test "wireguard_interface_ensure creates when missing" do
@@ -66,15 +70,25 @@ defmodule MikrotikApi.WireguardHelpersTest do
         _ ->
           assert method == :post
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/wireguard"
+
           assert Enum.any?(headers, fn {k, v} ->
                    to_string(k) == "content-type" and to_string(v) == "application/json"
                  end)
+
           assert is_list(body)
           {:ok, {200, [], ""}}
       end
     end)
 
     auth = Auth.new(username: "u", password: "p")
-    assert {:ok, %{name: "wg0"}} = MikrotikApi.wireguard_interface_ensure(auth, "10.0.0.1", "wg0", %{"listen-port" => "51820"}, scheme: :http)
+
+    assert {:ok, %{name: "wg0"}} =
+             MikrotikApi.wireguard_interface_ensure(
+               auth,
+               "10.0.0.1",
+               "wg0",
+               %{"listen-port" => "51820"},
+               scheme: :http
+             )
   end
 end

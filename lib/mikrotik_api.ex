@@ -1137,14 +1137,18 @@ defmodule MikrotikApi do
           {:ok, any() | nil} | {:error, Error.t()}
   def wireguard_interface_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     case post(auth, ip, "/interface/wireguard", attrs, opts) do
-      {:ok, _} = ok -> ok
+      {:ok, _} = ok ->
+        ok
+
       {:error, %Error{status: 400, details: det}} = err ->
         if is_binary(det) and String.contains?(det, "no such command") do
           post(auth, ip, "/interface/wireguard/add", attrs, opts)
         else
           err
         end
-      other -> other
+
+      other ->
+        other
     end
   end
 
@@ -1171,7 +1175,8 @@ defmodule MikrotikApi do
   @doc """
   GET /interface/wireguard/peers
   """
-  @spec wireguard_peer_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
+  @spec wireguard_peer_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
   def wireguard_peer_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/wireguard/peers", opts)
   end
@@ -1183,14 +1188,18 @@ defmodule MikrotikApi do
           {:ok, any() | nil} | {:error, Error.t()}
   def wireguard_peer_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
     case post(auth, ip, "/interface/wireguard/peers", attrs, opts) do
-      {:ok, _} = ok -> ok
+      {:ok, _} = ok ->
+        ok
+
       {:error, %Error{status: 400, details: det}} = err ->
         if is_binary(det) and String.contains?(det, "no such command") do
           post(auth, ip, "/interface/wireguard/peers/add", attrs, opts)
         else
           err
         end
-      other -> other
+
+      other ->
+        other
     end
   end
 
@@ -1218,11 +1227,15 @@ defmodule MikrotikApi do
   Returns {:ok, %{id: id | public-key, interface: name, changed: [keys]}}.
   """
   @spec wireguard_peer_ensure(Auth.t(), String.t(), String.t(), String.t(), map(), Keyword.t()) ::
-          {:ok, %{id: String.t() | nil, interface: String.t(), changed: [String.t()]}} | {:error, term()}
+          {:ok, %{id: String.t() | nil, interface: String.t(), changed: [String.t()]}}
+          | {:error, term()}
   def wireguard_peer_ensure(auth, ip, interface, public_key, attrs \\ %{}, opts \\ [])
       when is_binary(interface) and is_binary(public_key) and is_map(attrs) do
     with {:ok, list} <- wireguard_peer_list(auth, ip, opts) do
-      entry = Enum.find(list || [], fn e -> e["interface"] == interface and e["public-key"] == public_key end)
+      entry =
+        Enum.find(list || [], fn e ->
+          e["interface"] == interface and e["public-key"] == public_key
+        end)
 
       case entry do
         nil ->
@@ -1230,7 +1243,12 @@ defmodule MikrotikApi do
 
           case wireguard_peer_add(auth, ip, merged, opts) do
             {:ok, _} ->
-              {:ok, %{id: public_key, interface: interface, changed: Enum.map(Map.keys(merged), &to_string/1)}}
+              {:ok,
+               %{
+                 id: public_key,
+                 interface: interface,
+                 changed: Enum.map(Map.keys(merged), &to_string/1)
+               }}
 
             {:error, _} = err ->
               err
@@ -1245,11 +1263,16 @@ defmodule MikrotikApi do
             end)
 
           case Map.keys(changed_map) do
-            [] -> {:ok, %{id: id, interface: interface, changed: []}}
+            [] ->
+              {:ok, %{id: id, interface: interface, changed: []}}
+
             keys ->
               case wireguard_peer_update(auth, ip, id, changed_map, opts) do
-                {:ok, _} -> {:ok, %{id: id, interface: interface, changed: Enum.map(keys, &to_string/1)}}
-                {:error, _} = err -> err
+                {:ok, _} ->
+                  {:ok, %{id: id, interface: interface, changed: Enum.map(keys, &to_string/1)}}
+
+                {:error, _} = err ->
+                  err
               end
           end
       end
@@ -1334,7 +1357,8 @@ defmodule MikrotikApi do
           Keyword.t()
         ) :: {:ok, %{a: map(), b: map()}} | {:error, Error.t() | term()}
   def ensure_wireguard_pair(%Auth{} = auth, ip_a, name_a, ip_b, name_b, attrs \\ %{}, opts \\ [])
-      when is_binary(ip_a) and is_binary(name_a) and is_binary(ip_b) and is_binary(name_b) and is_map(attrs) do
+      when is_binary(ip_a) and is_binary(name_a) and is_binary(ip_b) and is_binary(name_b) and
+             is_map(attrs) do
     # Ensure on A without sending private-key to allow RouterOS to auto-generate when creating
     attrs_a = Map.delete(attrs, "private-key")
 
@@ -1349,20 +1373,21 @@ defmodule MikrotikApi do
                 details: "wireguard interface not found after ensure"
               }},
          key_or_nil <- Map.get(entry_a, "private-key"),
-         key <- (
-           if is_binary(key_or_nil) do
-             key_or_nil
-           else
-             case wireguard_interface_getall(auth, ip_a, "name,private-key", opts) do
-               {:ok, all} when is_list(all) ->
-                 case Enum.find(all, &(&1["name"] == name_a)) do
-                   %{"private-key" => k} when is_binary(k) -> k
-                   _ -> nil
-                 end
-               _ -> nil
-             end
-           end
-         ),
+         key <-
+           (if is_binary(key_or_nil) do
+              key_or_nil
+            else
+              case wireguard_interface_getall(auth, ip_a, "name,private-key", opts) do
+                {:ok, all} when is_list(all) ->
+                  case Enum.find(all, &(&1["name"] == name_a)) do
+                    %{"private-key" => k} when is_binary(k) -> k
+                    _ -> nil
+                  end
+
+                _ ->
+                  nil
+              end
+            end),
          key when is_binary(key) <-
            key ||
              {:error,
@@ -1400,11 +1425,18 @@ defmodule MikrotikApi do
              public_key: String.t()
            }}
           | {:error, Error.t() | term()}
-  def wireguard_cluster_add(%Auth{} = auth, [primary_ip | rest_ips] = ips, name, attrs \\ %{}, opts \\ [])
+  def wireguard_cluster_add(
+        %Auth{} = auth,
+        [primary_ip | rest_ips] = ips,
+        name,
+        attrs \\ %{},
+        opts \\ []
+      )
       when is_list(ips) and is_binary(name) and is_map(attrs) do
     attrs_primary = Map.delete(attrs, "private-key")
 
-    with {:ok, res_primary} <- wireguard_interface_ensure(auth, primary_ip, name, attrs_primary, opts),
+    with {:ok, res_primary} <-
+           wireguard_interface_ensure(auth, primary_ip, name, attrs_primary, opts),
          {:ok, list_primary} <- wireguard_interface_list(auth, primary_ip, opts),
          entry when is_map(entry) <-
            Enum.find(list_primary, &(&1["name"] == name)) ||
@@ -1415,20 +1447,26 @@ defmodule MikrotikApi do
                 details: "wireguard interface not found on primary after ensure"
               }},
          key_or_nil <- Map.get(entry, "private-key"),
-         key <- (
-           if is_binary(key_or_nil) do
-             key_or_nil
-           else
-             case wireguard_interface_getall(auth, primary_ip, "name,private-key,public-key", opts) do
-               {:ok, all} when is_list(all) ->
-                 case Enum.find(all, &(&1["name"] == name)) do
-                   %{"private-key" => k} when is_binary(k) -> k
-                   _ -> nil
-                 end
-               _ -> nil
-             end
-           end
-         ),
+         key <-
+           (if is_binary(key_or_nil) do
+              key_or_nil
+            else
+              case wireguard_interface_getall(
+                     auth,
+                     primary_ip,
+                     "name,private-key,public-key",
+                     opts
+                   ) do
+                {:ok, all} when is_list(all) ->
+                  case Enum.find(all, &(&1["name"] == name)) do
+                    %{"private-key" => k} when is_binary(k) -> k
+                    _ -> nil
+                  end
+
+                _ ->
+                  nil
+              end
+            end),
          key when is_binary(key) <-
            key ||
              {:error,
@@ -1437,16 +1475,17 @@ defmodule MikrotikApi do
                 reason: :wireguard_private_key_unreadable,
                 details: "RouterOS REST did not return private-key on primary"
               }},
-         pub <- (
-           case wireguard_interface_getall(auth, primary_ip, "name,public-key", opts) do
-             {:ok, all} when is_list(all) ->
-               case Enum.find(all, &(&1["name"] == name)) do
-                 %{"public-key" => pk} when is_binary(pk) -> pk
-                 _ -> nil
-               end
-             _ -> nil
-           end
-         ) do
+         pub <-
+           (case wireguard_interface_getall(auth, primary_ip, "name,public-key", opts) do
+              {:ok, all} when is_list(all) ->
+                case Enum.find(all, &(&1["name"] == name)) do
+                  %{"public-key" => pk} when is_binary(pk) -> pk
+                  _ -> nil
+                end
+
+              _ ->
+                nil
+            end) do
       attrs_members = Map.put(attrs, "private-key", key)
 
       members =
@@ -1460,8 +1499,11 @@ defmodule MikrotikApi do
           ordered: true
         )
         |> Enum.map(fn
-          {:ok, {ip, result}} -> %{ip: ip, result: result}
-          {:exit, reason} -> %{ip: nil, result: {:error, %Error{status: nil, reason: :task_exit, details: reason}}}
+          {:ok, {ip, result}} ->
+            %{ip: ip, result: result}
+
+          {:exit, reason} ->
+            %{ip: nil, result: {:error, %Error{status: nil, reason: :task_exit, details: reason}}}
         end)
 
       {:ok, %{primary: %{ip: primary_ip, result: res_primary}, members: members, public_key: pub}}
@@ -1483,7 +1525,8 @@ defmodule MikrotikApi do
   Returns {:ok, [%{ip: ip, results: [result_per_peer]}]}.
   """
   @spec wireguard_cluster_add_peers(Auth.t(), [String.t()], String.t(), [map()], Keyword.t()) ::
-          {:ok, [%{ip: String.t(), results: [{:ok, map()} | {:error, Error.t() | term()}]}]} | {:error, term()}
+          {:ok, [%{ip: String.t(), results: [{:ok, map()} | {:error, Error.t() | term()}]}]}
+          | {:error, term()}
   def wireguard_cluster_add_peers(%Auth{} = auth, ips, name, peers, opts \\ [])
       when is_list(ips) and is_binary(name) and is_list(peers) do
     results =
@@ -1498,7 +1541,12 @@ defmodule MikrotikApi do
                   wireguard_peer_ensure(auth, ip, name, pk, attrs, opts)
 
                 _ ->
-                  {:error, %Error{status: nil, reason: :invalid_argument, details: "peer missing public-key"}}
+                  {:error,
+                   %Error{
+                     status: nil,
+                     reason: :invalid_argument,
+                     details: "peer missing public-key"
+                   }}
               end
             end)
 
@@ -1509,8 +1557,14 @@ defmodule MikrotikApi do
         ordered: true
       )
       |> Enum.map(fn
-        {:ok, res} -> res
-        {:exit, reason} -> %{ip: nil, results: [{:error, %Error{status: nil, reason: :task_exit, details: reason}}]}
+        {:ok, res} ->
+          res
+
+        {:exit, reason} ->
+          %{
+            ip: nil,
+            results: [{:error, %Error{status: nil, reason: :task_exit, details: reason}}]
+          }
       end)
 
     {:ok, results}
@@ -1721,6 +1775,91 @@ defmodule MikrotikApi do
   @spec gre_list(Auth.t(), String.t(), Keyword.t()) :: {:ok, any() | nil} | {:error, Error.t()}
   def gre_list(auth, ip, opts \\ []) do
     get(auth, ip, "/interface/gre", opts)
+  end
+
+  @doc """
+  POST /interface/gre (fallback to /interface/gre/add on older RouterOS)
+  """
+  @spec gre_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def gre_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    case post(auth, ip, "/interface/gre", attrs, opts) do
+      {:ok, _} = ok ->
+        ok
+
+      {:error, %Error{status: 400, details: det}} = err ->
+        if is_binary(det) and String.contains?(det, "no such command") do
+          post(auth, ip, "/interface/gre/add", attrs, opts)
+        else
+          err
+        end
+
+      other ->
+        other
+    end
+  end
+
+  @doc """
+  PATCH /interface/gre/{id}
+  """
+  @spec gre_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def gre_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/interface/gre/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /interface/gre/{id}
+  """
+  @spec gre_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def gre_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/interface/gre/#{id}", opts)
+  end
+
+  @doc """
+  Ensure a GRE interface by name or .id. If present, patches only differing keys.
+  Returns {:ok, %{id: id | name, name: name, changed: [keys]}}.
+  """
+  @spec gre_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, %{id: String.t(), name: String.t(), changed: [String.t()]}} | {:error, term()}
+  def gre_ensure(auth, ip, ident, attrs \\ %{}, opts \\ [])
+      when is_binary(ident) and is_map(attrs) do
+    with {:ok, list} <- gre_list(auth, ip, opts) do
+      case Enum.find(list || [], fn e -> e[".id"] == ident or e["name"] == ident end) do
+        nil ->
+          merged = Map.put(attrs, "name", ident)
+
+          case gre_add(auth, ip, merged, opts) do
+            {:ok, _} ->
+              {:ok, %{id: ident, name: ident, changed: Enum.map(Map.keys(merged), &to_string/1)}}
+
+            {:error, _} = err ->
+              err
+          end
+
+        %{".id" => id} = existing ->
+          name = Map.get(existing, "name", ident)
+
+          changed_map =
+            attrs
+            |> Enum.reduce(%{}, fn {k, v}, acc ->
+              existing_v = Map.get(existing, k)
+              if existing_v == v, do: acc, else: Map.put(acc, k, v)
+            end)
+
+          case Map.keys(changed_map) do
+            [] ->
+              {:ok, %{id: id, name: name, changed: []}}
+
+            keys ->
+              case gre_update(auth, ip, id, changed_map, opts) do
+                {:ok, _} -> {:ok, %{id: id, name: name, changed: Enum.map(keys, &to_string/1)}}
+                {:error, _} = err -> err
+              end
+          end
+      end
+    end
   end
 
   @doc """
