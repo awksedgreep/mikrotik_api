@@ -53,9 +53,9 @@ Constructor: MikrotikApi.Auth.new(opts).
 ## 5) Core API Functions
 
 All functions return:
-- {:ok, decoded_json} on 2xx with JSON body
-- {:ok, nil} when 204/empty body
-- {:error, %MikrotikApi.Error{status, reason, details}} otherwise
+- `{:ok, decoded_json}` on 2xx with JSON body
+- `{:ok, nil}` when 204/empty body
+- `{:error, %MikrotikApi.Error{status: _, reason: _, details: _}}` otherwise
 
 Generic:
 - call(auth, target, method, path, opts \\ []) — method is :get | :post | :put | :patch | :delete

@@ -20,9 +20,9 @@ defmodule MikrotikApi.BridgeHelpersTest do
              MikrotikApi.bridge_list(auth, "10.0.0.1", scheme: :http)
   end
 
-  test "bridge_port_add POST /interface/bridge/port" do
+  test "bridge_port_add PUT /interface/bridge/port" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
-      assert method == :post
+      assert method == :put
       assert to_string(url) == "http://10.0.0.1:80/rest/interface/bridge/port"
 
       assert Enum.any?(headers, fn {k, v} ->
@@ -71,7 +71,7 @@ defmodule MikrotikApi.BridgeHelpersTest do
           {:ok, {200, [], ~s([])}}
 
         _ ->
-          assert method == :post
+          assert method == :put
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/bridge/vlan"
 
           assert Enum.any?(headers, fn {k, v} ->

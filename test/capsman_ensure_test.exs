@@ -32,7 +32,7 @@ defmodule MikrotikApi.CapsmanEnsureTest do
           {:ok, {200, [], ~s([])}}
 
         _ ->
-          assert method == :post
+          assert method == :put
           assert to_string(url) == "http://10.0.0.1:80/rest/caps-man/provisioning"
 
           assert Enum.any?(headers, fn {k, v} ->

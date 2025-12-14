@@ -1,0 +1,160 @@
+# DNS and User Management
+
+This notebook demonstrates DNS static records, DNS cache operations, user management, and system identity.
+
+## Install
+
+```elixir
+Mix.install([
+  {:mikrotik_api, path: ".."}
+])
+```
+
+## Setup
+
+```elixir
+alias MikrotikApi.Auth
+require Logger
+
+auth = Auth.new(
+  username: System.get_env("MT_USER"),
+  password: System.get_env("MT_PASS"),
+  verify: :verify_none
+)
+
+ip = System.get_env("MT_IP") || "192.0.2.1"
+```
+
+## System Identity
+
+```elixir
+# Get current router identity
+case MikrotikApi.system_identity(auth, ip, scheme: :http) do
+  {:ok, %{"name" => name}} -> Logger.info("Router identity: #{name}")
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# Set router identity (uncomment to run)
+# MikrotikApi.system_identity_set(auth, ip, "MyRouter", scheme: :http)
+```
+
+## DNS Settings
+
+```elixir
+# Get DNS server configuration
+case MikrotikApi.dns_settings_get(auth, ip, scheme: :http) do
+  {:ok, config} -> Logger.info("DNS config: #{inspect(config)}")
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# Update DNS settings (uncomment to run)
+# MikrotikApi.dns_settings_set(auth, ip, %{"servers" => "8.8.8.8,8.8.4.4"}, scheme: :http)
+```
+
+## DNS Cache
+
+```elixir
+# List DNS cache entries
+case MikrotikApi.dns_cache_list(auth, ip, scheme: :http) do
+  {:ok, cache} -> Logger.info("DNS cache has #{length(cache)} entries")
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# Flush DNS cache
+case MikrotikApi.dns_cache_flush(auth, ip, scheme: :http) do
+  {:ok, _} -> Logger.info("DNS cache flushed")
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+## DNS Static Records
+
+```elixir
+# List static DNS entries
+case MikrotikApi.dns_static_list(auth, ip, scheme: :http) do
+  {:ok, records} ->
+    Logger.info("DNS static records: #{length(records)}")
+    Enum.each(records, fn r -> Logger.info("  #{r["name"]} -> #{r["address"]}") end)
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# Ensure a static DNS record exists (idempotent)
+case MikrotikApi.dns_static_ensure(auth, ip, "test.local", %{"address" => "10.0.0.100"}, scheme: :http) do
+  {:ok, %{name: name, changed: []}} ->
+    Logger.info("Record #{name} already exists with correct values")
+  {:ok, %{name: name, changed: keys}} ->
+    Logger.info("Record #{name} created/updated: #{inspect(keys)}")
+  {:error, err} ->
+    Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# Manual CRUD: create, update, delete
+# Create
+{:ok, _} = MikrotikApi.dns_static_add(auth, ip, %{"name" => "example.local", "address" => "10.0.0.1"}, scheme: :http)
+
+# Find and update
+{:ok, records} = MikrotikApi.dns_static_list(auth, ip, scheme: :http)
+case Enum.find(records, fn r -> r["name"] == "example.local" end) do
+  %{".id" => id} ->
+    {:ok, _} = MikrotikApi.dns_static_update(auth, ip, id, %{"address" => "10.0.0.2"}, scheme: :http)
+    {:ok, _} = MikrotikApi.dns_static_delete(auth, ip, id, scheme: :http)
+    Logger.info("Created, updated, and deleted example.local")
+  nil ->
+    Logger.info("Record not found")
+end
+```
+
+## User Management
+
+```elixir
+# List users
+case MikrotikApi.user_list(auth, ip, scheme: :http) do
+  {:ok, users} ->
+    Logger.info("Users: #{length(users)}")
+    Enum.each(users, fn u -> Logger.info("  #{u["name"]} (group: #{u["group"]})") end)
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# List user groups
+case MikrotikApi.user_group_list(auth, ip, scheme: :http) do
+  {:ok, groups} ->
+    Logger.info("User groups: #{length(groups)}")
+    Enum.each(groups, fn g -> Logger.info("  #{g["name"]}") end)
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# List active user sessions
+case MikrotikApi.user_active_list(auth, ip, scheme: :http) do
+  {:ok, sessions} ->
+    Logger.info("Active sessions: #{length(sessions)}")
+    Enum.each(sessions, fn s -> Logger.info("  #{s["name"]} via #{s["via"]}") end)
+  {:error, err} -> Logger.error("Failed: #{inspect(err)}")
+end
+```
+
+```elixir
+# Ensure a user exists (idempotent) - BE CAREFUL with this!
+# Uncomment to run:
+# case MikrotikApi.user_ensure(auth, ip, "testuser", %{"group" => "read", "password" => "testpass123"}, scheme: :http) do
+#   {:ok, %{name: name, changed: []}} ->
+#     Logger.info("User #{name} already exists")
+#   {:ok, %{name: name, changed: keys}} ->
+#     Logger.info("User #{name} created/updated: #{inspect(keys)}")
+#   {:error, err} ->
+#     Logger.error("Failed: #{inspect(err)}")
+# end
+```

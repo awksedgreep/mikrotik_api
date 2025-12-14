@@ -35,9 +35,9 @@ defmodule MikrotikApi.MoreHelpersTest do
              MikrotikApi.dhcp_lease_list(auth, "10.0.0.1", scheme: :http)
   end
 
-  test "route_add POST /ip/route" do
+  test "route_add PUT /ip/route" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
-      assert method == :post
+      assert method == :put
       assert to_string(url) == "http://10.0.0.1:80/rest/ip/route"
 
       assert Enum.any?(headers, fn {k, v} ->

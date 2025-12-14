@@ -22,9 +22,9 @@ defmodule MikrotikApi.WirelessHelpersTest do
              MikrotikApi.wireless_interface_list(auth, "10.0.0.1", scheme: :http)
   end
 
-  test "wifi_ssid_add POST /interface/wifi/ssid (http)" do
+  test "wifi_ssid_add PUT /interface/wifi/ssid (http)" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
-      assert method == :post
+      assert method == :put
       assert to_string(url) == "http://10.0.0.1:80/rest/interface/wifi/ssid"
 
       assert Enum.any?(headers, fn {k, v} ->

@@ -127,11 +127,28 @@ Telemetry helpers (Phase 1–4)
 
 - WireGuard
   - wireguard_interface_list/3 — GET /interface/wireguard
-  - wireguard_interface_add/4 — POST /interface/wireguard
+  - wireguard_interface_add/4 — PUT /interface/wireguard
   - wireguard_interface_update/5 — PATCH /interface/wireguard/{id}
   - wireguard_interface_delete/4 — DELETE /interface/wireguard/{id}
   - wireguard_interface_ensure/5 — ensure by name, patch only diffs
   - ensure_wireguard_pair/7 — sequential workflow to create on router A, read private-key, and apply same private-key on router B (for VRRP HA)
+
+- DNS
+  - dns_config/3, dns_settings_get/3 — GET /ip/dns
+  - dns_settings_set/4 — POST /ip/dns/set
+  - dns_cache_list/3 — GET /ip/dns/cache
+  - dns_cache_flush/3 — POST /ip/dns/cache/flush
+  - dns_static_list/3, dns_static_add/4, dns_static_update/5, dns_static_delete/4, dns_static_ensure/5 — CRUD for /ip/dns/static
+
+- User Management
+  - user_list/3, user_add/4, user_update/5, user_delete/4, user_ensure/5 — CRUD for /user
+  - user_group_list/3 — GET /user/group
+  - user_active_list/3 — GET /user/active
+
+- System
+  - system_resource/3 — GET /system/resource
+  - system_identity/3 — GET /system/identity
+  - system_identity_set/4 — POST /system/identity/set
 
 Core functions (generic verbs)
 - get(auth, ip, path, opts \\ [])
@@ -233,6 +250,7 @@ auth = MikrotikApi.Auth.new(
 ip = System.get_env("MT_IP")
 {:ok, summary} = MikrotikApi.probe_device(auth, ip, scheme: :http)
 # summary => %{system: {:ok, %{...}}, counts: %{interfaces: n, ip_addresses: n, arp: n, neighbors: n}}
+```
 
 ## Batch reads (multi)
 To fetch the same path across multiple devices concurrently, use multi/6.
@@ -271,9 +289,9 @@ normalized =
 # Normalize booleans
 val = MikrotikApi.Normalize.normalize_bool("enabled") # => true
 ```
-```
 
-Multi (concurrent) examples
+## Multi (concurrent) examples
+
 ```elixir
 auth = MikrotikApi.Auth.new(username: System.get_env("MT_USER"), password: System.get_env("MT_PASS"), verify: :verify_none)
 ips = ["192.168.88.1", "192.168.88.2", "192.168.88.3"]

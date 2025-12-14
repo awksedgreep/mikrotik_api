@@ -9,9 +9,9 @@ defmodule MikrotikApi.WireguardPairWorkflowTest do
 
   test "ensure_wireguard_pair succeeds when A exposes private-key" do
     # Sequence of calls we expect:
-    # 1) GET A /interface/wireguard -> empty -> 2) POST A create
+    # 1) GET A /interface/wireguard -> empty -> 2) PUT A create
     # 3) GET A /interface/wireguard -> returns entry with private-key
-    # 4) GET B /interface/wireguard -> empty -> 5) POST/PATCH B with same key
+    # 4) GET B /interface/wireguard -> empty -> 5) PUT B with same key
 
     Process.put({__MODULE__, :state}, :first_get_a)
 
@@ -25,10 +25,10 @@ defmodule MikrotikApi.WireguardPairWorkflowTest do
 
       case {state, method, path} do
         {:first_get_a, :get, "interface/wireguard"} ->
-          Process.put({__MODULE__, :state}, :post_a)
+          Process.put({__MODULE__, :state}, :put_a)
           {:ok, {200, [], ~s([])}}
 
-        {:post_a, :post, "interface/wireguard"} ->
+        {:put_a, :put, "interface/wireguard"} ->
           # Creation on A
           assert Enum.any?(headers, fn {k, v} ->
                    to_string(k) == "content-type" and to_string(v) == "application/json"
@@ -45,10 +45,10 @@ defmodule MikrotikApi.WireguardPairWorkflowTest do
           {:ok, {200, [], body}}
 
         {:first_get_b, :get, "interface/wireguard"} ->
-          Process.put({__MODULE__, :state}, :post_b)
+          Process.put({__MODULE__, :state}, :put_b)
           {:ok, {200, [], ~s([])}}
 
-        {:post_b, :post, "interface/wireguard"} ->
+        {:put_b, :put, "interface/wireguard"} ->
           # Ensure B contains the same private-key in payload; body is charlist
           assert is_list(body)
           json = to_string(body)
@@ -99,10 +99,10 @@ defmodule MikrotikApi.WireguardPairWorkflowTest do
           {:ok, {200, [], ""}}
 
         {:get_b_interface, :get, "interface/wireguard"} ->
-          Process.put({__MODULE__, :state}, :post_b_interface)
+          Process.put({__MODULE__, :state}, :put_b_interface)
           {:ok, {200, [], ~s([])}}
 
-        {:post_b_interface, :post, "interface/wireguard"} ->
+        {:put_b_interface, :put, "interface/wireguard"} ->
           assert is_list(body)
           Process.put({__MODULE__, :state}, :done)
           {:ok, {200, [], ""}}

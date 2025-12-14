@@ -4,7 +4,7 @@ defmodule MikrotikApi.MixProject do
   def project do
     [
       app: :mikrotik_api,
-      version: "0.3.1",
+      version: "0.3.2",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -23,12 +23,13 @@ defmodule MikrotikApi.MixProject do
           "livebook/02_auth_and_tls.livemd",
           "livebook/03_crud_basics.livemd",
           "livebook/04_ensure_workflows.livemd",
-          "livebook/05_multi_and_probe.livemd"
+          "livebook/05_multi_and_probe.livemd",
+          "livebook/06_dns_and_users.livemd"
         ],
         groups_for_extras: [
           Livebooks: ~r{^livebook/}
         ],
-        source_ref: "v0.3.0"
+        source_ref: "v0.3.2"
       ]
     ]
   end

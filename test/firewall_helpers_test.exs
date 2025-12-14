@@ -24,7 +24,7 @@ defmodule MikrotikApi.FirewallHelpersTest do
 
   test "firewall_filter_add posts JSON to /ip/firewall/filter and returns raw body with decode: false" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
-      assert method == :post
+      assert method == :put
       assert to_string(url) == "http://10.0.0.1:80/rest/ip/firewall/filter"
 
       assert Enum.any?(headers, fn {k, v} ->

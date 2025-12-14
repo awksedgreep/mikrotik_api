@@ -113,6 +113,24 @@ defmodule MikrotikApi do
   end
 
   @doc """
+  GET /system/identity
+  """
+  @spec system_identity(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def system_identity(auth, ip, opts \\ []) do
+    get(auth, ip, "/system/identity", opts)
+  end
+
+  @doc """
+  POST /system/identity/set - update the system identity (router name).
+  """
+  @spec system_identity_set(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def system_identity_set(auth, ip, name, opts \\ []) when is_binary(name) do
+    post(auth, ip, "/system/identity/set", %{"name" => name}, opts)
+  end
+
+  @doc """
   GET /interface
   """
   @spec interface_list(Auth.t(), String.t(), Keyword.t()) ::
@@ -131,12 +149,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /ip/address
+  PUT /ip/address - create an IP address.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec ip_address_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def ip_address_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/ip/address", attrs, opts)
+    put(auth, ip, "/ip/address", attrs, opts)
   end
 
   @doc """
@@ -202,12 +221,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /ip/firewall/filter
+  PUT /ip/firewall/filter - create a firewall filter rule.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec firewall_filter_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def firewall_filter_add(auth, ip, rule, opts \\ []) when is_map(rule) or is_list(rule) do
-    post(auth, ip, "/ip/firewall/filter", rule, opts)
+    put(auth, ip, "/ip/firewall/filter", rule, opts)
   end
 
   @doc """
@@ -258,12 +278,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /ip/firewall/nat
+  PUT /ip/firewall/nat - create a firewall NAT rule.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec firewall_nat_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def firewall_nat_add(auth, ip, rule, opts \\ []) when is_map(rule) or is_list(rule) do
-    post(auth, ip, "/ip/firewall/nat", rule, opts)
+    put(auth, ip, "/ip/firewall/nat", rule, opts)
   end
 
   @doc """
@@ -386,12 +407,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /ip/dhcp-server/lease
+  PUT /ip/dhcp-server/lease - create a DHCP lease.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec dhcp_lease_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def dhcp_lease_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/ip/dhcp-server/lease", attrs, opts)
+    put(auth, ip, "/ip/dhcp-server/lease", attrs, opts)
   end
 
   @doc """
@@ -453,12 +475,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /ip/route
+  PUT /ip/route - create a route.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec route_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def route_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/ip/route", attrs, opts)
+    put(auth, ip, "/ip/route", attrs, opts)
   end
 
   @doc """
@@ -513,12 +536,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/bridge
+  PUT /interface/bridge - create a bridge interface.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec bridge_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def bridge_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/interface/bridge", attrs, opts)
+    put(auth, ip, "/interface/bridge", attrs, opts)
   end
 
   @doc """
@@ -573,12 +597,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/bridge/port
+  PUT /interface/bridge/port - create a bridge port.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec bridge_port_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def bridge_port_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/interface/bridge/port", attrs, opts)
+    put(auth, ip, "/interface/bridge/port", attrs, opts)
   end
 
   @doc """
@@ -635,12 +660,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/bridge/vlan
+  PUT /interface/bridge/vlan - create a bridge VLAN entry.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec bridge_vlan_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def bridge_vlan_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/interface/bridge/vlan", attrs, opts)
+    put(auth, ip, "/interface/bridge/vlan", attrs, opts)
   end
 
   @doc """
@@ -704,12 +730,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/wireless
+  PUT /interface/wireless - create a wireless interface.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec wireless_interface_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def wireless_interface_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/interface/wireless", attrs, opts)
+    put(auth, ip, "/interface/wireless", attrs, opts)
   end
 
   @doc """
@@ -794,13 +821,14 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/wireless/security-profiles
+  PUT /interface/wireless/security-profiles - create a wireless security profile.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec wireless_security_profile_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def wireless_security_profile_add(auth, ip, attrs, opts \\ [])
       when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/interface/wireless/security-profiles", attrs, opts)
+    put(auth, ip, "/interface/wireless/security-profiles", attrs, opts)
   end
 
   @doc """
@@ -910,12 +938,13 @@ defmodule MikrotikApi do
   # CAPsMAN
 
   @doc """
-  POST /caps-man/security
+  PUT /caps-man/security - create a CAPsMAN security profile.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec capsman_security_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def capsman_security_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/caps-man/security", attrs, opts)
+    put(auth, ip, "/caps-man/security", attrs, opts)
   end
 
   @doc """
@@ -957,13 +986,14 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /caps-man/provisioning
+  PUT /caps-man/provisioning - create a CAPsMAN provisioning rule.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec capsman_provisioning_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def capsman_provisioning_add(auth, ip, attrs, opts \\ [])
       when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/caps-man/provisioning", attrs, opts)
+    put(auth, ip, "/caps-man/provisioning", attrs, opts)
   end
 
   @doc """
@@ -1047,12 +1077,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/wifi/ssid
+  PUT /interface/wifi/ssid - create a WiFi SSID.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec wifi_ssid_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def wifi_ssid_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/interface/wifi/ssid", attrs, opts)
+    put(auth, ip, "/interface/wifi/ssid", attrs, opts)
   end
 
   @doc """
@@ -1083,12 +1114,13 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/wifi/security
+  PUT /interface/wifi/security - create a WiFi security profile.
+  RouterOS REST API uses PUT for creating resources.
   """
   @spec wifi_security_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def wifi_security_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    post(auth, ip, "/interface/wifi/security", attrs, opts)
+    put(auth, ip, "/interface/wifi/security", attrs, opts)
   end
 
   @doc """
@@ -1131,12 +1163,14 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/wireguard
+  PUT /interface/wireguard - create a WireGuard interface.
+  RouterOS REST API uses PUT for creating resources.
+  Falls back to POST /interface/wireguard/add on older RouterOS versions.
   """
   @spec wireguard_interface_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def wireguard_interface_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    case post(auth, ip, "/interface/wireguard", attrs, opts) do
+    case put(auth, ip, "/interface/wireguard", attrs, opts) do
       {:ok, _} = ok ->
         ok
 
@@ -1182,12 +1216,14 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/wireguard/peers (fallback to /add)
+  PUT /interface/wireguard/peers - create a WireGuard peer.
+  RouterOS REST API uses PUT for creating resources.
+  Falls back to POST /interface/wireguard/peers/add on older RouterOS versions.
   """
   @spec wireguard_peer_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def wireguard_peer_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    case post(auth, ip, "/interface/wireguard/peers", attrs, opts) do
+    case put(auth, ip, "/interface/wireguard/peers", attrs, opts) do
       {:ok, _} = ok ->
         ok
 
@@ -1650,12 +1686,126 @@ defmodule MikrotikApi do
   end
 
   @doc """
+  GET /ip/dns - alias for dns_config for consistency with REST pattern.
+  """
+  @spec dns_settings_get(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_settings_get(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/dns", opts)
+  end
+
+  @doc """
+  POST /ip/dns/set - update DNS server settings.
+  """
+  @spec dns_settings_set(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_settings_set(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    post(auth, ip, "/ip/dns/set", attrs, opts)
+  end
+
+  @doc """
   GET /ip/dns/cache
   """
   @spec dns_cache_list(Auth.t(), String.t(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def dns_cache_list(auth, ip, opts \\ []) do
     get(auth, ip, "/ip/dns/cache", opts)
+  end
+
+  @doc """
+  POST /ip/dns/cache/flush - flush the DNS cache.
+  """
+  @spec dns_cache_flush(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_cache_flush(auth, ip, opts \\ []) do
+    post(auth, ip, "/ip/dns/cache/flush", %{}, opts)
+  end
+
+  # DNS Static Records
+
+  @doc """
+  GET /ip/dns/static
+  """
+  @spec dns_static_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_static_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/ip/dns/static", opts)
+  end
+
+  @doc """
+  PUT /ip/dns/static - create a DNS static record.
+  RouterOS REST API uses PUT for creating resources.
+  """
+  @spec dns_static_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_static_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    put(auth, ip, "/ip/dns/static", attrs, opts)
+  end
+
+  @doc """
+  PATCH /ip/dns/static/{id}
+  """
+  @spec dns_static_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_static_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/ip/dns/static/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /ip/dns/static/{id}
+  """
+  @spec dns_static_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def dns_static_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/ip/dns/static/#{id}", opts)
+  end
+
+  @doc """
+  Ensure a DNS static record exists by name. If present, patches only differing keys.
+  Returns {:ok, %{id: id | name, name: name, changed: [keys]}}.
+  """
+  @spec dns_static_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, %{id: String.t(), name: String.t(), changed: [String.t()]}} | {:error, term()}
+  def dns_static_ensure(auth, ip, name, attrs \\ %{}, opts \\ [])
+      when is_binary(name) and is_map(attrs) do
+    with {:ok, list} <- dns_static_list(auth, ip, opts) do
+      case Enum.find(list || [], fn e -> e[".id"] == name or e["name"] == name end) do
+        nil ->
+          merged = Map.put(attrs, "name", name)
+
+          case dns_static_add(auth, ip, merged, opts) do
+            {:ok, _} ->
+              {:ok, %{id: name, name: name, changed: Enum.map(Map.keys(merged), &to_string/1)}}
+
+            {:error, _} = err ->
+              err
+          end
+
+        %{".id" => id} = existing ->
+          record_name = Map.get(existing, "name", name)
+
+          changed_map =
+            attrs
+            |> Enum.reduce(%{}, fn {k, v}, acc ->
+              existing_v = Map.get(existing, k)
+              if existing_v == v, do: acc, else: Map.put(acc, k, v)
+            end)
+
+          case Map.keys(changed_map) do
+            [] ->
+              {:ok, %{id: id, name: record_name, changed: []}}
+
+            keys ->
+              case dns_static_update(auth, ip, id, changed_map, opts) do
+                {:ok, _} ->
+                  {:ok, %{id: id, name: record_name, changed: Enum.map(keys, &to_string/1)}}
+
+                {:error, _} = err ->
+                  err
+              end
+          end
+      end
+    end
   end
 
   @doc """
@@ -1778,12 +1928,14 @@ defmodule MikrotikApi do
   end
 
   @doc """
-  POST /interface/gre (fallback to /interface/gre/add on older RouterOS)
+  PUT /interface/gre - create a GRE interface.
+  RouterOS REST API uses PUT for creating resources.
+  Falls back to POST /interface/gre/add on older RouterOS versions.
   """
   @spec gre_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
           {:ok, any() | nil} | {:error, Error.t()}
   def gre_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
-    case post(auth, ip, "/interface/gre", attrs, opts) do
+    case put(auth, ip, "/interface/gre", attrs, opts) do
       {:ok, _} = ok ->
         ok
 
@@ -1886,6 +2038,102 @@ defmodule MikrotikApi do
           {:ok, any() | nil} | {:error, Error.t()}
   def user_active_list(auth, ip, opts \\ []) do
     get(auth, ip, "/user/active", opts)
+  end
+
+  # User Management
+
+  @doc """
+  GET /user
+  """
+  @spec user_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def user_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/user", opts)
+  end
+
+  @doc """
+  PUT /user - create a new user.
+  RouterOS REST API uses PUT for creating resources.
+  """
+  @spec user_add(Auth.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def user_add(auth, ip, attrs, opts \\ []) when is_map(attrs) or is_list(attrs) do
+    put(auth, ip, "/user", attrs, opts)
+  end
+
+  @doc """
+  PATCH /user/{id} - update a user by .id.
+  """
+  @spec user_update(Auth.t(), String.t(), String.t(), map() | list(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def user_update(auth, ip, id, attrs, opts \\ []) when is_binary(id) do
+    patch(auth, ip, "/user/#{id}", attrs, opts)
+  end
+
+  @doc """
+  DELETE /user/{id} - delete a user by .id.
+  """
+  @spec user_delete(Auth.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def user_delete(auth, ip, id, opts \\ []) when is_binary(id) do
+    delete(auth, ip, "/user/#{id}", opts)
+  end
+
+  @doc """
+  GET /user/group
+  """
+  @spec user_group_list(Auth.t(), String.t(), Keyword.t()) ::
+          {:ok, any() | nil} | {:error, Error.t()}
+  def user_group_list(auth, ip, opts \\ []) do
+    get(auth, ip, "/user/group", opts)
+  end
+
+  @doc """
+  Ensure a user exists by name. If present, patches only differing keys.
+  Returns {:ok, %{id: id | name, name: name, changed: [keys]}}.
+  """
+  @spec user_ensure(Auth.t(), String.t(), String.t(), map(), Keyword.t()) ::
+          {:ok, %{id: String.t(), name: String.t(), changed: [String.t()]}} | {:error, term()}
+  def user_ensure(auth, ip, name, attrs \\ %{}, opts \\ [])
+      when is_binary(name) and is_map(attrs) do
+    with {:ok, list} <- user_list(auth, ip, opts) do
+      case Enum.find(list || [], fn e -> e[".id"] == name or e["name"] == name end) do
+        nil ->
+          merged = Map.put(attrs, "name", name)
+
+          case user_add(auth, ip, merged, opts) do
+            {:ok, _} ->
+              {:ok, %{id: name, name: name, changed: Enum.map(Map.keys(merged), &to_string/1)}}
+
+            {:error, _} = err ->
+              err
+          end
+
+        %{".id" => id} = existing ->
+          user_name = Map.get(existing, "name", name)
+
+          changed_map =
+            attrs
+            |> Enum.reduce(%{}, fn {k, v}, acc ->
+              existing_v = Map.get(existing, k)
+              if existing_v == v, do: acc, else: Map.put(acc, k, v)
+            end)
+
+          case Map.keys(changed_map) do
+            [] ->
+              {:ok, %{id: id, name: user_name, changed: []}}
+
+            keys ->
+              case user_update(auth, ip, id, changed_map, opts) do
+                {:ok, _} ->
+                  {:ok, %{id: id, name: user_name, changed: Enum.map(keys, &to_string/1)}}
+
+                {:error, _} = err ->
+                  err
+              end
+          end
+      end
+    end
   end
 
   @doc """

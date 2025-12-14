@@ -23,7 +23,7 @@ defmodule MikrotikApi.ResourceHelpersTest do
 
   test "ip_address_add posts JSON body to /ip/address" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
-      assert method == :post
+      assert method == :put
       assert to_string(url) == "http://10.0.0.1:80/rest/ip/address"
       # content-type header
       assert Enum.any?(headers, fn {k, v} ->

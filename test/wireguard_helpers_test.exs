@@ -20,9 +20,9 @@ defmodule MikrotikApi.WireguardHelpersTest do
              MikrotikApi.wireguard_interface_list(auth, "10.0.0.1", scheme: :http)
   end
 
-  test "wireguard_interface_add POST /interface/wireguard" do
+  test "wireguard_interface_add PUT /interface/wireguard" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
-      assert method == :post
+      assert method == :put
       assert to_string(url) == "http://10.0.0.1:80/rest/interface/wireguard"
 
       assert Enum.any?(headers, fn {k, v} ->
@@ -68,7 +68,7 @@ defmodule MikrotikApi.WireguardHelpersTest do
           {:ok, {200, [], ~s([])}}
 
         _ ->
-          assert method == :post
+          assert method == :put
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/wireguard"
 
           assert Enum.any?(headers, fn {k, v} ->

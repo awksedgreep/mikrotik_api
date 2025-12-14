@@ -32,7 +32,7 @@ defmodule MikrotikApi.GreHelpersTest do
           {:ok, {200, [], ~s([])}}
 
         _ ->
-          assert method == :post
+          assert method == :put
           assert to_string(url) == "http://10.0.0.1:80/rest/interface/gre"
 
           assert Enum.any?(headers, fn {k, v} ->
@@ -95,7 +95,7 @@ defmodule MikrotikApi.GreHelpersTest do
   test "gre_add falls back to /interface/gre/add on 'no such command'" do
     MikrotikApi.Transport.Mock.put(fn method, url, headers, body, _opts ->
       case {method, to_string(url)} do
-        {:post, "http://10.0.0.1:80/rest/interface/gre"} ->
+        {:put, "http://10.0.0.1:80/rest/interface/gre"} ->
           {:ok, {400, [], "no such command"}}
 
         {:post, "http://10.0.0.1:80/rest/interface/gre/add"} ->
