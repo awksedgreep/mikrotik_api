@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.3 - 2025-12-14
+
+### Fixed
+- Fixed `wireguard_cluster_add_peers/5` typespec to match implementation (function always returns `{:ok, results}`, never `{:error, term()}` at the top level)
+
 ## 0.3.2 - 2025-12-14
 
 ### Added

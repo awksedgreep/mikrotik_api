@@ -1562,7 +1562,6 @@ defmodule MikrotikApi do
   """
   @spec wireguard_cluster_add_peers(Auth.t(), [String.t()], String.t(), [map()], Keyword.t()) ::
           {:ok, [%{ip: String.t(), results: [{:ok, map()} | {:error, Error.t() | term()}]}]}
-          | {:error, term()}
   def wireguard_cluster_add_peers(%Auth{} = auth, ips, name, peers, opts \\ [])
       when is_list(ips) and is_binary(name) and is_list(peers) do
     results =
