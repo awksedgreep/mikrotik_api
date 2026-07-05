@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.3.4 - 2026-07-05
+
+### Added
+- Added `MikrotikApi.Transport.Mock` as a public testing transport for mocking RouterOS REST endpoints without a device
+- Documented mocked-router testing in README and transport HexDocs
+
+### Fixed
+- Updated package GitHub link to `awksedgreep/mikrotik_api`
+- Updated ExDoc `source_ref` to match the package version
+
 ## 0.3.3 - 2025-12-14
 
 ### Fixed

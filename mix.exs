@@ -4,14 +4,14 @@ defmodule MikrotikApi.MixProject do
   def project do
     [
       app: :mikrotik_api,
-      version: "0.3.3",
+      version: "0.3.4",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: [
         description: "Elixir client for MikroTik RouterOS API.",
         licenses: ["MIT"],
-        links: %{"GitHub" => "https://github.com/mcotner/mikrotik_api"}
+        links: %{"GitHub" => "https://github.com/awksedgreep/mikrotik_api"}
       ],
       source_url: "https://github.com/awksedgreep/mikrotik_api",
       docs: [
@@ -29,7 +29,7 @@ defmodule MikrotikApi.MixProject do
         groups_for_extras: [
           Livebooks: ~r{^livebook/}
         ],
-        source_ref: "v0.3.2"
+        source_ref: "v0.3.4"
       ]
     ]
   end

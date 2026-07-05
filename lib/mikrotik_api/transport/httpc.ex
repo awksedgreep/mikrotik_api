@@ -1,6 +1,5 @@
 defmodule MikrotikApi.Transport.Httpc do
   @behaviour MikrotikApi.Transport
-  require Logger
 
   @impl true
   def request(method, url, headers, body, opts) do

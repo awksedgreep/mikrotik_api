@@ -75,6 +75,59 @@ case MikrotikApi.post(auth, ip, "/ip/address", attrs, scheme: :http) do
 end
 ```
 
+## Testing With Mocked Routers
+
+`MikrotikApi.Transport.Mock` is included for tests that need deterministic RouterOS endpoint responses without a physical device.
+
+```elixir
+# test/test_helper.exs or per-test setup
+Application.put_env(:mikrotik_api, :transport, MikrotikApi.Transport.Mock)
+```
+
+Stub RouterOS REST paths without the `/rest` prefix:
+
+```elixir
+defmodule MyRouterTest do
+  use ExUnit.Case, async: true
+
+  alias MikrotikApi.Auth
+  alias MikrotikApi.Transport.Mock
+
+  setup do
+    Application.put_env(:mikrotik_api, :transport, Mock)
+    Mock.clear()
+    :ok
+  end
+
+  test "reads system resources" do
+    Mock.stub(:get, "/system/resource", 200, %{
+      "uptime" => "1h",
+      "board-name" => "hAP ax2"
+    })
+
+    auth = Auth.new(username: "u", password: "p")
+
+    assert {:ok, %{"uptime" => "1h"}} =
+             MikrotikApi.system_resource(auth, "10.0.0.1", scheme: :http)
+  end
+end
+```
+
+For tests that need to assert on headers, request bodies, TLS options, or the fully built URL, install a low-level handler:
+
+```elixir
+Mock.put(fn method, url, headers, body, opts ->
+  assert method == :put
+  assert to_string(url) == "http://10.0.0.1:80/rest/ip/address"
+  assert Enum.any?(headers, fn {key, _} -> to_string(key) == "authorization" end)
+  assert Keyword.has_key?(opts, :http_opts)
+
+  {:ok, {201, [], ""}}
+end)
+```
+
+Mocks are isolated by the calling process. If the code under test calls `MikrotikApi` from a worker process, pass `owner_pid: self()` to the API call so the worker can use the test process' stubs.
+
 ## Security Notes
 - Prefer HTTPS (www-ssl) as advised by MikroTik; avoid HTTP except for isolated testing.
 - For self-signed routers in lab environments, you may set verify: :verify_none, but understand the risks.
@@ -399,4 +452,3 @@ ip = System.get_env("MT_IP")
 ## Reference
 - MikroTik RouterOS REST API: https://help.mikrotik.com/docs/spaces/ROS/pages/47579162/REST+API
 - See rest_api.md for the complete plan and API surface.
-
